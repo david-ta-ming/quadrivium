@@ -408,4 +408,14 @@ public class MagicSquare {
 
         return equals;
     }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder();
+        for (final int[] row : this.values) {
+            sb.append(Arrays.toString(row));
+        }
+        return sb.toString();
+    }
+
 }
