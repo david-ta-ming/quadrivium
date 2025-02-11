@@ -1,16 +1,16 @@
-# Compiled class file
+# Compiled Class Files
 *.class
 
-# Log file
+# Log Files
 *.log
 
-# BlueJ files
+# BlueJ Files
 *.ctxt
 
 # Mobile Tools for Java (J2ME)
 .mtj.tmp/
 
-# Package Files #
+# Package Files
 *.jar
 *.war
 *.nar
@@ -19,6 +19,68 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+# Virtual Machine Crash Logs
 hs_err_pid*
 replay_pid*
+
+# Build Directories
+target/
+build/
+.gradle/
+
+# Dependency Caches
+.m2/
+.cache/
+.npm/
+
+# Maven Wrapper
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.metadata/
+recommenders/
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Linux
+*.swp
+*.swo
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Miscellaneous
+repomix-output.txt
+
+# Generated Files
+out/
+logs/
+*.tmp
+
+# Java Coverage and Analysis
+jacoco.exec
+*.ec
+*.em
