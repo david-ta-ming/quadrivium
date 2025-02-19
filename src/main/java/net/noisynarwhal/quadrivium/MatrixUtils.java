@@ -9,7 +9,6 @@ import java.io.*;
 import java.util.*;
 
 /**
- *
  * @author lioudt
  */
 public class MatrixUtils {
@@ -32,10 +31,10 @@ public class MatrixUtils {
      * Modify the passed matrix such that the two specified values are switched
      *
      * @param matrix the matrix to modify
-     * @param r1 the row index of the first value
-     * @param c1 the column index of the first value
-     * @param r2 the row index of the second value
-     * @param c2 the column index of the second value
+     * @param r1     the row index of the first value
+     * @param c1     the column index of the first value
+     * @param r2     the row index of the second value
+     * @param c2     the column index of the second value
      */
     public static void switchValues(final int[][] matrix, int r1, int c1, int r2, int c2) {
         matrix[r1][c1] ^= matrix[r2][c2];
@@ -47,8 +46,8 @@ public class MatrixUtils {
      * Modify the passed matrix such that the two specified columns are switched
      *
      * @param matrix the matrix to modify
-     * @param c1 the index of the first column
-     * @param c2 the index of the second column
+     * @param c1     the index of the first column
+     * @param c2     the index of the second column
      */
     public static void switchCols(final int[][] matrix, final int c1, final int c2) {
 
@@ -67,8 +66,8 @@ public class MatrixUtils {
      * Modify the passed matrix such that the two specified rows are switched
      *
      * @param matrix the matrix to modify
-     * @param r1 the index of the first row
-     * @param r2 the index of the second row
+     * @param r1     the index of the first row
+     * @param r2     the index of the second row
      */
     public static void switchRows(final int[][] matrix, final int r1, final int r2) {
 
@@ -83,7 +82,6 @@ public class MatrixUtils {
     }
 
     /**
-     *
      * @param square the square to modify
      * @return the square with the rows reversed
      */
@@ -107,6 +105,7 @@ public class MatrixUtils {
 
     /**
      * Mirror the square
+     *
      * @param square the square to mirror
      * @return the mirrored square
      */
@@ -133,6 +132,7 @@ public class MatrixUtils {
 
     /**
      * Rotate a square matrix
+     *
      * @param square the square to rotate
      * @return the rotated square
      */
@@ -143,8 +143,9 @@ public class MatrixUtils {
 
     /**
      * Print a matrix of integers
+     *
      * @param values the matrix to print
-     * @param out the writer to write to
+     * @param out    the writer to write to
      * @throws IOException if an I/O error occurs
      */
     public static void print(int[][] values, Writer out) throws IOException {
@@ -161,46 +162,44 @@ public class MatrixUtils {
         final int padLen = (int) (Math.log10(maxVal) + 1) + 1;
         final String padFormat = "%1$" + padLen + "s";
 
-        try (final BufferedWriter writer = (out instanceof BufferedWriter) ? (BufferedWriter) out : new BufferedWriter(out)) {
+        final BufferedWriter writer = (out instanceof BufferedWriter) ? (BufferedWriter) out : new BufferedWriter(out);
 
-            /*
-             * Write first line then write subsequent lines preceded by newline
-             */
-            {
-                final int[] row = values[0];
-                for (final int v : row) {
-                    final String s = String.format(padFormat, Integer.toString(v));
-                    writer.append(s);
-                }
+        /*
+         * Write first line then write subsequent lines preceded by newline
+         */
+        {
+            final int[] row = values[0];
+            for (final int v : row) {
+                final String s = String.format(padFormat, Integer.toString(v));
+                writer.append(s);
             }
-
-            for (int r = 1; r < values.length; r++) {
-
-                writer.newLine();
-
-                final int[] row = values[r];
-
-                for (final int v : row) {
-                    final String s = String.format(padFormat, Integer.toString(v));
-                    writer.append(s);
-                }
-
-            }
-
-            writer.flush();
         }
+
+        for (int r = 1; r < values.length; r++) {
+
+            writer.newLine();
+
+            final int[] row = values[r];
+
+            for (final int v : row) {
+                final String s = String.format(padFormat, Integer.toString(v));
+                writer.append(s);
+            }
+
+        }
+
+        writer.flush();
     }
 
     /**
      * Print a matrix of integers
+     *
      * @param values the matrix to print
      * @return the matrix as a string
      */
     public static String print(int[][] values) {
 
-        try {
-
-            final StringWriter writer = new StringWriter();
+        try(final StringWriter writer = new StringWriter()) {
 
             MatrixUtils.print(values, writer);
 
@@ -219,6 +218,7 @@ public class MatrixUtils {
 
     /**
      * Compare two matrices for equality
+     *
      * @param values1 the first matrix
      * @param values2 the second matrix
      * @return true if the two matrices are equal
@@ -244,9 +244,9 @@ public class MatrixUtils {
     /**
      * Return a matrix in Frénicle standard form
      *
-     * @see <a href="https://en.wikipedia.org/wiki/Fr%C3%A9nicle_standard_form">Frénicle standard form</a>
      * @param matrix the matrix to standardize
      * @return the matrix in Frénicle standard form
+     * @see <a href="https://en.wikipedia.org/wiki/Fr%C3%A9nicle_standard_form">Frénicle standard form</a>
      */
     public static int[][] standardize(int[][] matrix) {
 

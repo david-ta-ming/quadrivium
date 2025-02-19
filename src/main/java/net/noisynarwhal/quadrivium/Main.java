@@ -80,8 +80,21 @@ public class Main {
                 }
             }
 
-            final long secs = TimeUnit.SECONDS.convert(System.nanoTime() - start, TimeUnit.NANOSECONDS);
-            logger.info("Search completed in {} seconds", secs);
+            final long durationNanos = System.nanoTime() - start;
+            final long durationMillis = TimeUnit.MILLISECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
+            final long durationSeconds = TimeUnit.SECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
+            final long durationMinutes = TimeUnit.MINUTES.convert(durationNanos, TimeUnit.NANOSECONDS);
+            final long durationHours = TimeUnit.HOURS.convert(durationNanos, TimeUnit.NANOSECONDS);
+
+            if (durationSeconds <= 1) {
+                logger.info("Search completed in {} milliseconds", durationMillis);
+            } else if (durationMinutes <= 3) {
+                logger.info("Search completed in {} seconds", durationSeconds);
+            } else if (durationHours <= 6) {
+                logger.info("Search completed in {} minutes", durationMinutes);
+            } else {
+                logger.info("Search completed in {} hours", durationHours);
+            }
 
         } catch (ParseException e) {
             logger.error("Failed to parse command line arguments", e);

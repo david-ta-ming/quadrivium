@@ -8,7 +8,7 @@
     </appender>
 
     <!-- Set logging levels -->
-    <logger name="net.noisynarwhal.quadrivium" level="INFO"/>
+    <logger name="net.noisynarwhal.quadrivium" level="DEBUG"/>
 
     <!-- Root logger configuration -->
     <root level="WARN">
