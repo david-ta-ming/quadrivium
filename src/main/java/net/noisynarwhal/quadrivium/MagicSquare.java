@@ -176,6 +176,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
         return new MagicSquare(values, false);
     }
 
+    /**
+     * Evolve this instance to a new instance with a higher score.
+     * @return a new Magic instance
+     */
     public MagicSquare evolve() {
         MagicSquare magic = this;
 
@@ -391,6 +395,11 @@ public class MagicSquare implements Comparable<MagicSquare> {
         return hash;
     }
 
+    /**
+     * Compares two Magic instances for equality.
+     * @param obj
+     * @return
+     */
     @Override
     public boolean equals(Object obj) {
         final boolean equals;
@@ -409,6 +418,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
         return equals;
     }
 
+    /**
+     * Returns a string representation of the Magic instance.
+     * @return a string representation of the Magic instance
+     */
     @Override
     public String toString() {
         final StringBuilder sb = new StringBuilder();
@@ -419,7 +432,7 @@ public class MagicSquare implements Comparable<MagicSquare> {
     }
 
     /**
-     * Compares and ranks by score then by values
+     * Compares and ranks by score then by values. Higher scores are prioritized.
      * @param other the object to be compared.
      * @return a negative integer, zero, or a positive integer as this object is less than, equal to, or greater than the specified object.
      */

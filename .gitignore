@@ -84,3 +84,4 @@ logs/
 jacoco.exec
 *.ec
 *.em
+dependency-reduced-pom.xml

@@ -22,21 +22,37 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     /**
      * Constructor for MagicSquareWorker
      *
-     * @param order
-     * @param solutionFound
+     * @param order The order of the magic square
+     * @param solutionFound Atomic boolean to track if a solution has been found
      */
     public MagicSquareWorker(int order, AtomicBoolean solutionFound) {
         this.order = order;
         this.solutionFound = solutionFound;
     }
 
+    @Override
+    public MagicSquare call() {
+        MagicSquare magic = MagicSquare.build(order);
+        while (!(magic.isMagic() || solutionFound.get())) {
+            magic = magic.evolve();
+        }
+        solutionFound.compareAndSet(false, magic.isMagic());
+        return magic;
+    }
+
+    /**
+     * Search for a magic square of the given order using the specified number of threads
+     * @param order The order of the magic square
+     * @param numThreads The number of threads to use
+     * @return A magic square if found, otherwise null
+     */
     public static MagicSquare search(int order, int numThreads) {
 
-        if(order < 3) {
+        if (order < 3) {
             throw new IllegalArgumentException("Order must be at least 3");
         }
 
-        if(numThreads <= 0) {
+        if (numThreads <= 0) {
             throw new IllegalArgumentException("Number of threads must be greater than 0");
         }
 
@@ -68,15 +84,5 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
         }
 
         return null;
-    }
-
-    @Override
-    public MagicSquare call() {
-        MagicSquare magic = MagicSquare.build(order);
-        while (!(magic.isMagic() || solutionFound.get())) {
-            magic = magic.evolve();
-        }
-        solutionFound.compareAndSet(false, magic.isMagic());
-        return magic;
     }
 }

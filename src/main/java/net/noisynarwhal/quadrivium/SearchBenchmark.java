@@ -13,7 +13,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Fork(value = 1, warmups = 0)
 @Warmup(iterations = 0)
-@Measurement(iterations = 7)
+@Measurement(iterations = 11)
 public class SearchBenchmark {
 
     @Param({"19", "29", "37"})  // Test different square sizes
