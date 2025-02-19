@@ -4,10 +4,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Main class for Quadrivium
@@ -41,43 +38,25 @@ public class Main {
             }
 
             // Calculate number of threads
-            int numThreads = requestedThreads;
-            if (numThreads <= 0) {
+            final int numThreads;
+            if (requestedThreads <= 0) {
                 numThreads = Math.max(3, Runtime.getRuntime().availableProcessors() / 2);
                 logger.debug("Auto-detected thread count: {}", numThreads);
+            } else {
+                numThreads = requestedThreads;
             }
 
             logger.info("Starting magic square search with order={}, threads={}", order, numThreads);
 
-            final List<Future<MagicSquare>> futures = new ArrayList<>();
-            final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-
             final long start = System.nanoTime();
 
-            try {
+            final MagicSquare magic = MagicSquareWorker.search(order, numThreads);
 
-                final AtomicBoolean solutionFound = new AtomicBoolean(false);
-
-                for (int i = 0; i < numThreads; i++) {
-                    final Callable<MagicSquare> worker = new MagicSquareWorker(order, solutionFound);
-                    final Future<MagicSquare> future = executor.submit(worker);
-                    futures.add(future);
-                }
-            } finally {
-                executor.shutdown();
-            }
-
-            for (final Future<MagicSquare> future : futures) {
-                try {
-                    final MagicSquare magic = future.get();
-                    if (magic.isMagic()) {
-                        String result = MatrixUtils.print(magic.getValues());
-                        logger.info("Found magic square solution:\n{}", result);
-                        break;
-                    }
-                } catch (Exception e) {
-                    logger.error("Error processing worker result", e);
-                }
+            if(magic != null) {
+                final String result = MatrixUtils.print(magic.getValues());
+                logger.info("Found magic square solution:\n{}", result);
+            } else {
+                logger.info("No magic square solution found");
             }
 
             final long durationNanos = System.nanoTime() - start;
