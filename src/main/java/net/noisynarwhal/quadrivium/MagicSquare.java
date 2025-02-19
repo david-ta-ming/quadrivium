@@ -17,7 +17,7 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  * @author lioudt
  */
-public class MagicSquare {
+public class MagicSquare implements Comparable<MagicSquare> {
     private static final Logger logger = LoggerFactory.getLogger(MagicSquare.class);
     private final Random RANDOM = ThreadLocalRandom.current();
     private final int magicSum;
@@ -41,10 +41,10 @@ public class MagicSquare {
     /**
      * Instantiates a new Magic instance. This instance maintains a reference to
      * the passed int[][] value for performance reasons. Modifying this value
-     * subsequently will have side affects on this instance. This constructor is
+     * subsequently will have side effects on this instance. This constructor is
      * marked private mostly for this reason. Use the
      * {@link net.noisynarwhal.quadrivium.MagicSquare#build(int[][])} to
-     * instantiate a new instance using a copy of the passed values matrix.
+     * instantiate a new instance using a copy of the passed values' matrix.
      *
      * @param values the values of the magic square
      * @param isSemiMagic true if this instance is known to be at least be
@@ -418,4 +418,35 @@ public class MagicSquare {
         return sb.toString();
     }
 
+    /**
+     * Compares and ranks by score then by values
+     * @param other the object to be compared.
+     * @return a negative integer, zero, or a positive integer as this object is less than, equal to, or greater than the specified object.
+     */
+    @Override
+    public int compareTo(MagicSquare other) {
+
+        if (other == null) {
+            throw new NullPointerException("Cannot compare with null MagicSquare");
+        }
+
+        // First compare by score (higher score is "greater")
+        final int scoreComparison = Integer.compare(this.score, other.score);
+        if (scoreComparison != 0) {
+            return scoreComparison;
+        }
+
+        // If still equal, compare by values lexicographically
+        for (int i = 0; i < this.order; i++) {
+            for (int j = 0; j < this.order; j++) {
+                final int valueComparison = Integer.compare(this.values[i][j], other.values[i][j]);
+                if (valueComparison != 0) {
+                    return valueComparison;
+                }
+            }
+        }
+
+        // If all elements are equal, squares are equal
+        return 0;
+    }
 }
