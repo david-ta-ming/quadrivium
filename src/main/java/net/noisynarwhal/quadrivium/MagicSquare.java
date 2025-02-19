@@ -430,8 +430,8 @@ public class MagicSquare implements Comparable<MagicSquare> {
             throw new NullPointerException("Cannot compare with null MagicSquare");
         }
 
-        // First compare by score (higher score is "greater")
-        final int scoreComparison = Integer.compare(this.score, other.score);
+        // First compare by score (higher scores are prioritized)
+        final int scoreComparison = Integer.compare(other.score, this.score);
         if (scoreComparison != 0) {
             return scoreComparison;
         }
