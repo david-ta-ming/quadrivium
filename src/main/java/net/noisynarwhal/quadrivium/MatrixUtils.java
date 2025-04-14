@@ -37,9 +37,10 @@ public class MatrixUtils {
      * @param c2     the column index of the second value
      */
     public static void switchValues(final int[][] matrix, int r1, int c1, int r2, int c2) {
-        matrix[r1][c1] ^= matrix[r2][c2];
-        matrix[r2][c2] ^= matrix[r1][c1];
-        matrix[r1][c1] ^= matrix[r2][c2];
+        if (r1 == r2 && c1 == c2) return;
+        final int temp = matrix[r1][c1];
+        matrix[r1][c1] = matrix[r2][c2];
+        matrix[r2][c2] = temp;
     }
 
     /**
