@@ -78,12 +78,21 @@ The implementation uses an evolutionary approach:
 
 ## Performance
 
-Performance varies based on the order of the magic square:
-- Small squares (n ≤ 5): typically found in seconds
-- Medium squares (5 < n ≤ 15): typically found in minutes
-- Large squares (n > 15): may take hours or more
+Performance benchmarks were run using JMH (Java Microbenchmark Harness) with the following results:
 
-The benchmark class `SearchBenchmark` provides detailed performance metrics.
+| Order | Average Time |
+|-------|-------------|
+| 19    | 0.061 s     |
+| 29    | 0.621 s     |
+| 41    | 5.199 s     |
+| 59    | 48.616 s    |
+
+The benchmarks were run on:
+- JDK 17.0.14
+- Java HotSpot(TM) 64-Bit Server VM
+- Apple M2 Pro (12 cores: 8 performance + 4 efficiency)
+- 16 GB unified memory
+- Multi-threaded execution (using 6 worker threads)
 
 ## API Usage
 
