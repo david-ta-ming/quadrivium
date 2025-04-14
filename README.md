@@ -31,8 +31,8 @@ A magic square is an n×n square matrix where:
 Clone the repository and build using Maven:
 
 ```bash
-git clone https://github.com/david-ta-ming/Quadrivium.git
-cd Quadrivium
+git clone https://github.com/david-ta-ming/quadrivium.git
+cd quadrivium
 mvn clean package
 ```
 
