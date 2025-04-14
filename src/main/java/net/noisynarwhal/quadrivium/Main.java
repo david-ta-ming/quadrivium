@@ -15,7 +15,7 @@ public class Main {
     /** Logger instance for this class */
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
     /** Default order (size) of the magic square to search for */
-    private static final String DEFAULT_ORDER = "59";
+    private static final String DEFAULT_ORDER = "30";
     /** Default number of threads (0 means auto-detect based on available processors) */
     private static final String DEFAULT_THREADS = "0"; // 0 means auto-detect
 
