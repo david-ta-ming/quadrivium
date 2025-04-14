@@ -1,10 +1,10 @@
 # Quadrivium
 
-A Java library for finding magic squares using parallel evolutionary algorithms.
+A high-performance Java library that implements parallel evolutionary algorithms for discovering magic squares. This solution demonstrates the application of modern parallel computing techniques to combinatorial optimization problems.
 
 ## Overview
 
-Quadrivium is a high-performance tool for generating magic squares of arbitrary size. It uses a parallel evolutionary algorithm approach to efficiently search for valid magic square solutions.
+Quadrivium is an advanced tool for generating magic squares of arbitrary size. It employs parallel evolutionary algorithms to efficiently search for valid magic square solutions, leveraging multiple CPU cores to explore the solution space.
 
 A magic square is an n×n square matrix where:
 - Contains all numbers from 1 to n²
