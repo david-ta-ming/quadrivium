@@ -9,15 +9,19 @@ import java.io.*;
 import java.util.*;
 
 /**
+ * Utility class for matrix operations used in magic square generation and manipulation.
+ * Provides methods for copying, transforming, and analyzing square matrices.
+ *
  * @author lioudt
  */
 public class MatrixUtils {
 
     /**
-     * Copy the given matrix
+     * Creates a deep copy of the given matrix.
      *
      * @param values the matrix to copy
-     * @return a copy of the matrix
+     * @return a new matrix containing copies of all values
+     * @throws NullPointerException if the input matrix is null
      */
     public static int[][] copy(int[][] values) {
         final int[][] copy = new int[values.length][];
@@ -28,13 +32,16 @@ public class MatrixUtils {
     }
 
     /**
-     * Modify the passed matrix such that the two specified values are switched
+     * Swaps two values in a matrix at the specified positions. If both positions are the same,
+     * the method returns immediately without making any changes.
      *
      * @param matrix the matrix to modify
-     * @param r1     the row index of the first value
-     * @param c1     the column index of the first value
-     * @param r2     the row index of the second value
-     * @param c2     the column index of the second value
+     * @param r1     the row index of the first value (0-based)
+     * @param c1     the column index of the first value (0-based)
+     * @param r2     the row index of the second value (0-based)
+     * @param c2     the column index of the second value (0-based)
+     * @throws ArrayIndexOutOfBoundsException if any of the indices are out of bounds
+     * @throws NullPointerException if the matrix is null
      */
     public static void switchValues(final int[][] matrix, int r1, int c1, int r2, int c2) {
         if (r1 == r2 && c1 == c2) return;
@@ -44,11 +51,13 @@ public class MatrixUtils {
     }
 
     /**
-     * Modify the passed matrix such that the two specified columns are switched
+     * Swaps two columns in a matrix.
      *
      * @param matrix the matrix to modify
-     * @param c1     the index of the first column
-     * @param c2     the index of the second column
+     * @param c1     the index of the first column to swap (0-based)
+     * @param c2     the index of the second column to swap (0-based)
+     * @throws ArrayIndexOutOfBoundsException if either column index is out of bounds
+     * @throws NullPointerException if the matrix is null
      */
     public static void switchCols(final int[][] matrix, final int c1, final int c2) {
 
@@ -64,11 +73,13 @@ public class MatrixUtils {
     }
 
     /**
-     * Modify the passed matrix such that the two specified rows are switched
+     * Swaps two rows in a matrix.
      *
      * @param matrix the matrix to modify
-     * @param r1     the index of the first row
-     * @param r2     the index of the second row
+     * @param r1     the index of the first row to swap (0-based)
+     * @param r2     the index of the second row to swap (0-based)
+     * @throws ArrayIndexOutOfBoundsException if either row index is out of bounds
+     * @throws NullPointerException if the matrix is null
      */
     public static void switchRows(final int[][] matrix, final int r1, final int r2) {
 
@@ -83,8 +94,12 @@ public class MatrixUtils {
     }
 
     /**
-     * @param square the square to modify
-     * @return the square with the rows reversed
+     * Creates the transpose of a square matrix.
+     *
+     * @param square the square matrix to transpose
+     * @return a new matrix that is the transpose of the input
+     * @throws IllegalArgumentException if the input matrix is not square
+     * @throws NullPointerException if the input matrix is null
      */
     public static int[][] transpose(int[][] square) {
 
@@ -105,10 +120,12 @@ public class MatrixUtils {
     }
 
     /**
-     * Mirror the square
+     * Creates a mirror image of a square matrix along its main diagonal.
      *
-     * @param square the square to mirror
-     * @return the mirrored square
+     * @param square the square matrix to mirror
+     * @return a new matrix that is the mirror image of the input
+     * @throws IllegalArgumentException if the input matrix is not square
+     * @throws NullPointerException if the input matrix is null
      */
     public static int[][] mirror(int[][] square) {
 
@@ -132,10 +149,12 @@ public class MatrixUtils {
     }
 
     /**
-     * Rotate a square matrix
+     * Rotates a square matrix 90 degrees clockwise.
      *
-     * @param square the square to rotate
-     * @return the rotated square
+     * @param square the square matrix to rotate
+     * @return a new matrix that is rotated 90 degrees clockwise
+     * @throws IllegalArgumentException if the input matrix is not square
+     * @throws NullPointerException if the input matrix is null
      */
     public static int[][] rotate(int[][] square) {
 
@@ -143,11 +162,12 @@ public class MatrixUtils {
     }
 
     /**
-     * Print a matrix of integers
+     * Prints a matrix to the specified writer.
      *
      * @param values the matrix to print
-     * @param out    the writer to write to
+     * @param out    the writer to print to
      * @throws IOException if an I/O error occurs
+     * @throws NullPointerException if either argument is null
      */
     public static void print(int[][] values, Writer out) throws IOException {
 
@@ -193,10 +213,11 @@ public class MatrixUtils {
     }
 
     /**
-     * Print a matrix of integers
+     * Converts a matrix to a string representation.
      *
-     * @param values the matrix to print
-     * @return the matrix as a string
+     * @param values the matrix to convert
+     * @return a string representation of the matrix
+     * @throws NullPointerException if the input matrix is null
      */
     public static String print(int[][] values) {
 
@@ -218,11 +239,12 @@ public class MatrixUtils {
     }
 
     /**
-     * Compare two matrices for equality
+     * Compares two matrices for equality of their values.
      *
-     * @param values1 the first matrix
-     * @param values2 the second matrix
-     * @return true if the two matrices are equal
+     * @param values1 the first matrix to compare
+     * @param values2 the second matrix to compare
+     * @return true if both matrices have the same dimensions and values
+     * @throws NullPointerException if either matrix is null
      */
     public static boolean valuesEqual(int[][] values1, int[][] values2) {
 
@@ -243,11 +265,11 @@ public class MatrixUtils {
     }
 
     /**
-     * Return a matrix in Frénicle standard form
+     * Standardizes a matrix by sorting its rows and columns.
      *
      * @param matrix the matrix to standardize
-     * @return the matrix in Frénicle standard form
-     * @see <a href="https://en.wikipedia.org/wiki/Fr%C3%A9nicle_standard_form">Frénicle standard form</a>
+     * @return a new standardized matrix
+     * @throws NullPointerException if the input matrix is null
      */
     public static int[][] standardize(int[][] matrix) {
 
@@ -299,11 +321,12 @@ public class MatrixUtils {
     }
 
     /**
-     * Parse a white-space delimited matrix of integers
+     * Reads a matrix from a reader.
      *
      * @param in the reader to read from
-     * @return the matrix
+     * @return the matrix read from the input
      * @throws IOException if an I/O error occurs
+     * @throws NullPointerException if the input reader is null
      */
     public static int[][] read(final Reader in) throws IOException {
 
@@ -346,11 +369,12 @@ public class MatrixUtils {
     }
 
     /**
-     * Tests the sum of rows, columns, and diagonals for equality. This does not
-     * check that the values are distinct or consecutive.
+     * Checks if a matrix is a magic square.
      *
-     * @param matrix the square to test
-     * @return true if the square is magic
+     * @param matrix the matrix to check
+     * @return true if the matrix is a magic square
+     * @throws IllegalArgumentException if the input matrix is not square
+     * @throws NullPointerException if the input matrix is null
      */
     public static boolean isMagic(int[][] matrix) {
 
@@ -428,10 +452,13 @@ public class MatrixUtils {
     }
 
     /**
-     * Tests whether a square is bi-magic
+     * Checks if a matrix is a bimagic square (magic square where the squares of the numbers
+     * also form a magic square).
      *
-     * @param matrix the square to test
-     * @return true if the square is bi-magic
+     * @param matrix the matrix to check
+     * @return true if the matrix is a bimagic square
+     * @throws IllegalArgumentException if the input matrix is not square
+     * @throws NullPointerException if the input matrix is null
      */
     public static boolean isBiMagic(int[][] matrix) {
 

@@ -7,13 +7,27 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.*;
 
 /**
- * Main class for Quadrivium
+ * Main class for Quadrivium - a program to find magic squares using parallel computation.
+ * A magic square is a square grid filled with distinct numbers such that the numbers in each row,
+ * each column, and both main diagonals all add up to the same value.
  */
 public class Main {
+    /** Logger instance for this class */
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
-    private static final String DEFAULT_ORDER = "30";
+    /** Default order (size) of the magic square to search for */
+    private static final String DEFAULT_ORDER = "59";
+    /** Default number of threads (0 means auto-detect based on available processors) */
     private static final String DEFAULT_THREADS = "0"; // 0 means auto-detect
 
+    /**
+     * Main entry point for the Quadrivium program.
+     * Parses command line arguments and initiates the magic square search.
+     *
+     * @param args Command line arguments:
+     *             -h: Show help
+     *             -o <order>: Specify the order (size) of the magic square (default: 30)
+     *             -t <threads>: Specify number of threads (default: 0 for auto-detect)
+     */
     public static void main(String[] args) {
         final Options options = createOptions();
         final CommandLineParser parser = new DefaultParser();
@@ -83,7 +97,9 @@ public class Main {
     }
 
     /**
-     * Creates and configures command line options
+     * Creates the command line options for the program.
+     *
+     * @return Options object containing all supported command line arguments
      */
     private static Options createOptions() {
         Options options = new Options();
@@ -108,7 +124,9 @@ public class Main {
     }
 
     /**
-     * Prints usage information
+     * Prints the help message for the program.
+     *
+     * @param options The command line options to display in the help message
      */
     private static void printHelp(Options options) {
         final HelpFormatter formatter = new HelpFormatter();

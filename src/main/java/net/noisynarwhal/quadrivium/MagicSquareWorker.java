@@ -12,9 +12,12 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Worker class for MagicSquare
+ * Worker class for MagicSquare that implements Callable to search for magic squares in parallel.
+ * A magic square is a square grid filled with distinct numbers such that the numbers in each row,
+ * each column, and both main diagonals all add up to the same value.
  */
 public class MagicSquareWorker implements Callable<MagicSquare> {
+    /** Logger instance for this class */
     private static final Logger logger = LoggerFactory.getLogger(MagicSquareWorker.class);
     private final int order;
     private final AtomicBoolean solutionFound;
@@ -22,7 +25,7 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     /**
      * Constructor for MagicSquareWorker
      *
-     * @param order The order of the magic square
+     * @param order The order of the magic square (size of the square grid)
      * @param solutionFound Atomic boolean to track if a solution has been found
      */
     public MagicSquareWorker(int order, AtomicBoolean solutionFound) {
@@ -30,6 +33,13 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
         this.solutionFound = solutionFound;
     }
 
+    /**
+     * Executes the magic square search algorithm.
+     * Continuously evolves the magic square until either a valid solution is found
+     * or another thread has found a solution.
+     *
+     * @return A MagicSquare object, which may or may not be a valid magic square
+     */
     @Override
     public MagicSquare call() {
         MagicSquare magic = MagicSquare.build(order);
@@ -41,10 +51,14 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     }
 
     /**
-     * Search for a magic square of the given order using the specified number of threads
-     * @param order The order of the magic square
-     * @param numThreads The number of threads to use
-     * @return A magic square if found, otherwise null
+     * Search for a magic square of the given order using the specified number of threads.
+     * This method creates a thread pool and distributes the search work across multiple threads.
+     * The search stops as soon as any thread finds a valid magic square.
+     *
+     * @param order The order of the magic square (size of the square grid)
+     * @param numThreads The number of threads to use for parallel search
+     * @return A valid magic square if found, otherwise null
+     * @throws IllegalArgumentException if order is less than 3 or numThreads is less than or equal to 0
      */
     public static MagicSquare search(int order, int numThreads) {
 
