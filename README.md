@@ -90,7 +90,7 @@ Performance benchmarks were run using JMH (Java Microbenchmark Harness) with the
 The benchmarks were run on:
 - JDK 17.0.14
 - Java HotSpot(TM) 64-Bit Server VM
-- Apple M2 Pro (12 cores: 8 performance + 4 efficiency)
+- Apple M2 Pro with 12 cores
 - 16 GB unified memory
 - Multi-threaded execution (using 6 worker threads, half of available processors)
 
