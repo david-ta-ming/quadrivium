@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.io.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -289,5 +290,109 @@ class MagicSquareTest {
         
         // Should compare lexicographically since scores are equal
         assertNotEquals(0, square1.compareTo(square2));
+    }
+}
+
+class MatrixUtilsTest {
+    
+    @Test
+    void testReadAndPrintMatrix() throws IOException {
+        // Test matrix to use
+        int[][] original = {
+            {8, 1, 6},
+            {3, 5, 7},
+            {4, 9, 2}
+        };
+        
+        // Test printing
+        String printed = MatrixUtils.print(original);
+        assertNotNull(printed);
+        assertTrue(printed.contains("8"));
+        assertTrue(printed.contains("5"));
+        assertTrue(printed.contains("2"));
+        
+        // Test reading back what we printed
+        try (StringReader reader = new StringReader(printed)) {
+            int[][] read = MatrixUtils.read(reader);
+            
+            // Verify dimensions
+            assertEquals(original.length, read.length);
+            assertEquals(original[0].length, read[0].length);
+            
+            // Verify all values match
+            for (int i = 0; i < original.length; i++) {
+                assertArrayEquals(original[i], read[i]);
+            }
+        }
+    }
+    
+    @Test
+    void testReadFromString() throws IOException {
+        String input = "1 2 3\n4 5 6\n7 8 9";
+        
+        try (StringReader reader = new StringReader(input)) {
+            int[][] matrix = MatrixUtils.read(reader);
+            
+            assertEquals(3, matrix.length);
+            assertEquals(3, matrix[0].length);
+            assertEquals(1, matrix[0][0]);
+            assertEquals(5, matrix[1][1]);
+            assertEquals(9, matrix[2][2]);
+        }
+    }
+    
+    @Test
+    void testPrintToWriter() throws IOException {
+        int[][] matrix = {
+            {1, 2, 3},
+            {4, 5, 6},
+            {7, 8, 9}
+        };
+        
+        StringWriter writer = new StringWriter();
+        MatrixUtils.print(matrix, writer);
+        
+        String result = writer.toString();
+        assertNotNull(result);
+        assertTrue(result.contains("1"));
+        assertTrue(result.contains("5"));
+        assertTrue(result.contains("9"));
+        
+        // Verify format - numbers should be space-separated
+        String[] lines = result.split("\n");
+        assertEquals(3, lines.length);
+        for (String line : lines) {
+            assertTrue(line.matches("\\s*\\d+\\s+\\d+\\s+\\d+\\s*"));
+        }
+    }
+    
+    @Test
+    void testReadWithExtraWhitespace() throws IOException {
+        String input = "  1  2  3  \n  4  5  6  \n  7  8  9  ";
+        
+        try (StringReader reader = new StringReader(input)) {
+            int[][] matrix = MatrixUtils.read(reader);
+            
+            assertEquals(3, matrix.length);
+            assertEquals(3, matrix[0].length);
+            assertEquals(1, matrix[0][0]);
+            assertEquals(5, matrix[1][1]);
+            assertEquals(9, matrix[2][2]);
+        }
+    }
+    
+    @Test
+    void testReadEmptyLines() throws IOException {
+        String input = "\n1 2 3\n\n4 5 6\n\n7 8 9\n\n";
+        
+        try (StringReader reader = new StringReader(input)) {
+            int[][] matrix = MatrixUtils.read(reader);
+            
+            assertEquals(3, matrix.length);
+            assertEquals(3, matrix[0].length);
+            assertEquals(1, matrix[0][0]);
+            assertEquals(5, matrix[1][1]);
+            assertEquals(9, matrix[2][2]);
+        }
     }
 }

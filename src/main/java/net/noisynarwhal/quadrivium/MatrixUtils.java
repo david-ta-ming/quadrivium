@@ -334,25 +334,23 @@ public class MatrixUtils {
 
         final List<int[]> rows = new ArrayList<>();
 
-        try (final BufferedReader reader = (in instanceof BufferedReader) ? (BufferedReader) in : new BufferedReader(in)) {
+        final BufferedReader reader = (in instanceof BufferedReader) ? (BufferedReader) in : new BufferedReader(in);
 
-            String line;
-            while ((line = reader.readLine()) != null) {
+        String line;
+        while ((line = reader.readLine()) != null) {
 
-                line = line.trim();
+            line = line.trim();
 
-                if (!line.isEmpty()) {
+            if (!line.isEmpty()) {
 
-                    final String[] vals = line.split("\\s+");
+                final String[] vals = line.split("\\s+");
 
-                    final int[] row = new int[vals.length];
-                    for (int i = 0; i < vals.length; i++) {
-                        row[i] = Integer.parseInt(vals[i]);
-                    }
-
-                    rows.add(row);
-
+                final int[] row = new int[vals.length];
+                for (int i = 0; i < vals.length; i++) {
+                    row[i] = Integer.parseInt(vals[i]);
                 }
+
+                rows.add(row);
 
             }
 
