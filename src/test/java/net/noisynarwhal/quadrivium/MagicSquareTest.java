@@ -291,6 +291,59 @@ class MagicSquareTest {
         // Should compare lexicographically since scores are equal
         assertNotEquals(0, square1.compareTo(square2));
     }
+
+    @Test
+    public void testStandardize() {
+        // Test with a simple 2x2 matrix
+        int[][] matrix = {
+            {1, 2},
+            {3, 4}
+        };
+        
+        // The standardized form should be the one with the smallest values in the top-left
+        int[][] expected = {
+            {1, 2},
+            {3, 4}
+        };
+        
+        int[][] standardized = MatrixUtils.standardize(matrix);
+        assertTrue(MatrixUtils.valuesEqual(expected, standardized));
+        
+        // Test with a rotated version of the same matrix
+        int[][] rotated = {
+            {3, 1},
+            {4, 2}
+        };
+        
+        standardized = MatrixUtils.standardize(rotated);
+        assertTrue(MatrixUtils.valuesEqual(expected, standardized));
+        
+        // Test with a mirrored version
+        int[][] mirrored = {
+            {2, 1},
+            {4, 3}
+        };
+        
+        standardized = MatrixUtils.standardize(mirrored);
+        assertTrue(MatrixUtils.valuesEqual(expected, standardized));
+        
+        // Test with a 3x3 magic square
+        int[][] magicSquare = {
+            {8, 1, 6},
+            {3, 5, 7},
+            {4, 9, 2}
+        };
+        
+        // The standardized form should be the one with the smallest values in the top-left
+        int[][] expectedMagic = {
+            {2, 7, 6},
+            {9, 5, 1},
+            {4, 3, 8}
+        };
+        
+        standardized = MatrixUtils.standardize(magicSquare);
+        assertTrue(MatrixUtils.valuesEqual(expectedMagic, standardized));
+    }
 }
 
 class MatrixUtilsTest {
