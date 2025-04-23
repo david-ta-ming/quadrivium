@@ -5,11 +5,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.*;
+import java.util.stream.Collectors;
 
 /**
  * Worker class for MagicSquare that implements Callable to search for magic squares in parallel.
@@ -20,17 +17,17 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     /** Logger instance for this class */
     private static final Logger logger = LoggerFactory.getLogger(MagicSquareWorker.class);
     private final int order;
-    private final AtomicBoolean solutionFound;
+    private final CompletableFuture<MagicSquare> firstSolution;
 
     /**
      * Constructor for MagicSquareWorker
      *
      * @param order The order of the magic square (size of the square grid)
-     * @param solutionFound Atomic boolean to track if a solution has been found
+     * @param firstSolution CompletableFuture that will be completed with the first valid solution
      */
-    public MagicSquareWorker(int order, AtomicBoolean solutionFound) {
+    private MagicSquareWorker(int order, CompletableFuture<MagicSquare> firstSolution) {
         this.order = order;
-        this.solutionFound = solutionFound;
+        this.firstSolution = firstSolution;
     }
 
     /**
@@ -43,10 +40,12 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     @Override
     public MagicSquare call() {
         MagicSquare magic = MagicSquare.build(order);
-        while (!(magic.isMagic() || solutionFound.get())) {
+        while (!(magic.isMagic() || firstSolution.isDone())) {
             magic = magic.evolve();
         }
-        solutionFound.compareAndSet(false, magic.isMagic());
+        if (magic.isMagic()) {
+            firstSolution.complete(magic);
+        }
         return magic;
     }
 
@@ -61,7 +60,6 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      * @throws IllegalArgumentException if order is less than 3 or numThreads is less than or equal to 0
      */
     public static MagicSquare search(int order, int numThreads) {
-
         if (order < 3) {
             throw new IllegalArgumentException("Order must be at least 3");
         }
@@ -70,33 +68,32 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             throw new IllegalArgumentException("Number of threads must be greater than 0");
         }
 
-        final List<Future<MagicSquare>> futures = new ArrayList<>();
         final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        final CompletableFuture<MagicSquare> firstSolution = new CompletableFuture<>();
 
         try {
-
-            final AtomicBoolean solutionFound = new AtomicBoolean(false);
-
+            List<CompletableFuture<MagicSquare>> futures = new ArrayList<>();
+            
             for (int i = 0; i < numThreads; i++) {
-                final Callable<MagicSquare> worker = new MagicSquareWorker(order, solutionFound);
-                final Future<MagicSquare> future = executor.submit(worker);
+                final Callable<MagicSquare> worker = new MagicSquareWorker(order, firstSolution);
+                CompletableFuture<MagicSquare> future = CompletableFuture.supplyAsync(() -> {
+                    try {
+                        return worker.call();
+                    } catch (Exception e) {
+                        throw new CompletionException(e);
+                    }
+                }, executor);
                 futures.add(future);
             }
+
+            // Wait for either the first solution or all threads to complete
+            CompletableFuture.anyOf(futures.toArray(new CompletableFuture[0])).join();
+            
+            // Get the first solution if it exists
+            return firstSolution.getNow(null);
+            
         } finally {
             executor.shutdown();
         }
-
-        for (final Future<MagicSquare> future : futures) {
-            try {
-                final MagicSquare magic = future.get();
-                if (magic.isMagic()) {
-                    return magic;
-                }
-            } catch (Exception e) {
-                logger.error("Error processing worker result", e);
-            }
-        }
-
-        return null;
     }
 }
