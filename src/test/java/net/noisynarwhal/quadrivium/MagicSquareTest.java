@@ -143,10 +143,9 @@ class MagicSquareTest {
     @Test
     void testBuildWithInvalidOrder() {
         // Test building a magic square with invalid order
-        // Note: The implementation currently doesn't validate order, so we'll skip these tests
-        // assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(2));
-        // assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(0));
-        // assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(-1));
+        assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(2));
+        assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(0));
+        assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(-1));
     }
 
     @Test

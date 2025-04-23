@@ -130,8 +130,12 @@ public class MagicSquare implements Comparable<MagicSquare> {
      * Create a random square with values from 1 to n*n
      * @param order the order of the square
      * @return a new MagicSquare instance
+     * @throws IllegalArgumentException if order is less than 3
      */
     public static MagicSquare build(final int order) {
+        if (order < 3) {
+            throw new IllegalArgumentException("Order must be at least 3 for a magic square");
+        }
 
         final int[][] values = new int[order][order];
 
