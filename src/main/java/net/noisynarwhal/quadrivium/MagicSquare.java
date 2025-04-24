@@ -19,24 +19,26 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class MagicSquare implements Comparable<MagicSquare> {
     private static final Logger logger = LoggerFactory.getLogger(MagicSquare.class);
+    /** Thread-local random number generator for thread safety */
     private final Random RANDOM = ThreadLocalRandom.current();
+    /** The magic constant that all rows, columns, and diagonals should sum to */
     private final int magicSum;
+    /** The order (size) of the magic square */
     private final int order;
+    /** The actual values in the square, stored as a 2D array */
     private final int[][] values;
+    /** Current score: number of rows, columns, and diagonals that sum to magicSum */
     private final int score;
+    /** Maximum possible score: all rows, columns, and both diagonals sum to magicSum */
     private final int maxScore;
-
+    /** Whether this square is semi-magic (all rows and columns sum to magicSum) */
     private final boolean isSemiMagic;
+    /** Whether this square is fully magic (all rows, columns, and diagonals sum to magicSum) */
     private final boolean isMagic;
-    /**
-     * Rows that do not sum to the magic constant
-     */
+    /** Indices of rows that do not sum to the magic constant */
     private final List<Integer> openRows = new ArrayList<>();
-    /**
-     * Cols that do not sum to the magic constant
-     */
+    /** Indices of columns that do not sum to the magic constant */
     private final List<Integer> openCols = new ArrayList<>();
-
 
     /**
      * Instantiates a new Magic instance. This instance maintains a reference to
@@ -52,24 +54,23 @@ public class MagicSquare implements Comparable<MagicSquare> {
      *                    false if it is not known to be semi-magic (may be semi-magic or not)
      */
     private MagicSquare(int[][] values, boolean isSemiMagic) {
-
         this.values = values;
         this.order = values.length;
 
+        // Calculate the magic constant: n(n²+1)/2
         this.magicSum = this.order * (this.order * this.order + 1) / 2;
 
+        // Maximum score is when all rows, columns, and both diagonals sum to magicSum
         this.maxScore = this.order + this.order + 2;
 
         int scoreSum = 0;
 
         if (isSemiMagic) {
-
+            // If we know it's semi-magic, all rows and columns sum correctly
             scoreSum = this.maxScore - 2;
-
             this.isSemiMagic = true;
-
         } else {
-
+            // Check each row and column
             for (int i = 0; i < this.order; i++) {
                 /*
                  * Score of rows
@@ -85,18 +86,23 @@ public class MagicSquare implements Comparable<MagicSquare> {
                     sumCol += this.values[j][i];
                 }
 
+                // If row sums to magic constant, increment score
                 if (this.magicSum == sumRow) {
                     scoreSum++;
                 } else {
+                    // Otherwise, add to list of rows needing improvement
                     this.openRows.add(i);
                 }
+                // If column sums to magic constant, increment score
                 if (this.magicSum == sumCol) {
                     scoreSum++;
                 } else {
+                    // Otherwise, add to list of columns needing improvement
                     this.openCols.add(i);
                 }
             }
 
+            // If all rows and columns sum correctly, it's semi-magic
             this.isSemiMagic = (scoreSum == this.maxScore - 2);
         }
 
@@ -110,22 +116,19 @@ public class MagicSquare implements Comparable<MagicSquare> {
              */
             int sumrl = 0;
             for (int i = 0; i < this.order; i++) {
-
                 sumlr += this.values[i][i];
                 sumrl += this.values[i][this.order - 1 - i];
             }
 
+            // If both diagonals sum to magic constant, add 2 to score
             if (magicSum == sumlr && magicSum == sumrl) {
                 scoreSum += 2;
             }
         }
 
         this.score = scoreSum;
-
         this.isMagic = scoreSum == this.maxScore;
-
     }
-
 
     /**
      * Create a random square with values from 1 to n*n
@@ -140,21 +143,22 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
         final int[][] values = new int[order][order];
 
+        // Create a list of numbers from 1 to n²
         final List<Integer> valuesList = new ArrayList<>();
         for (int i = 1; i <= order * order; i++) {
             valuesList.add(i);
         }
 
+        // Shuffle the numbers randomly
         Collections.shuffle(valuesList, ThreadLocalRandom.current());
 
+        // Fill the square with the shuffled numbers
         final Iterator<Integer> it = valuesList.iterator();
-
         for (int r = 0; r < order; r++) {
             for (int c = 0; c < order; c++) {
                 values[r][c] = it.next();
                 it.remove();
             }
-
         }
 
         return new MagicSquare(values, false);
@@ -169,9 +173,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
      * @return a new Magic instance
      */
     public static MagicSquare build(int[][] values) {
-
+        // Create a defensive copy of the values
         values = MatrixUtils.copy(values);
 
+        // Validate that it's a square matrix
         for (final int[] row : values) {
             if (row.length != values.length) {
                 throw new IllegalArgumentException("Matrix is not an n*n square");
@@ -188,8 +193,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
     public MagicSquare evolve() {
         MagicSquare magic = this;
 
+        // Generate a new child through mutation
         final MagicSquare child = magic.newChild();
 
+        // Keep the child if it has a better or equal score
         if (child.getScore() >= magic.getScore()) {
             magic = child;
         }
@@ -199,24 +206,18 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
     /**
      * Generate a new child based on this instance's values with a mutation.
+     * The mutation strategy depends on whether the square is semi-magic:
+     * - If semi-magic: permute rows/columns to improve diagonal sums
+     * - If not semi-magic: swap values to improve row/column sums
      *
      * @return a new {@code Magic} instance
      */
     public MagicSquare newChild() {
-
         final MagicSquare child;
-
         final int[][] childValues = MatrixUtils.copy(this.values);
 
-        /*
-         * If semi-magic permute rows and columns, otherwise switch cell values
-         */
         if (this.isSemiMagic) {
-
-            /*
-             * Sum the diagonals, keep the new values if it is closer to 2 *
-             * magic sum
-             */
+            // For semi-magic squares, we focus on improving the diagonals
             int sumDiagsStart = 0;
             for (int j = 0; j < this.order; j++) {
                 sumDiagsStart += childValues[j][j];
@@ -224,77 +225,58 @@ public class MagicSquare implements Comparable<MagicSquare> {
             }
 
             final int diffStart = Math.abs((2 * this.magicSum) - sumDiagsStart);
-
             int sumDiagsEnd = sumDiagsStart;
             int diffEnd;
 
             do {
-
                 if (RANDOM.nextBoolean()) {
-                    /*
-                     * Row exchange
-                     */
-                    int r1;
-                    int r2;
-
+                    // Try swapping two random rows
+                    int r1, r2;
                     do {
                         r1 = RANDOM.nextInt(this.order);
                         r2 = RANDOM.nextInt(this.order);
                     } while (r1 == r2);
 
+                    // Update diagonal sums after row swap
                     sumDiagsEnd -= (childValues[r1][r1] + childValues[r1][this.order - 1 - r1]);
                     sumDiagsEnd -= (childValues[r2][r2] + childValues[r2][this.order - 1 - r2]);
-
                     MatrixUtils.switchRows(childValues, r1, r2);
-
                     sumDiagsEnd += (childValues[r1][r1] + childValues[r1][this.order - 1 - r1]);
                     sumDiagsEnd += (childValues[r2][r2] + childValues[r2][this.order - 1 - r2]);
-
                 } else {
-                    /*
-                     * Col exchange
-                     */
-                    int c1;
-                    int c2;
-
+                    // Try swapping two random columns
+                    int c1, c2;
                     do {
                         c1 = RANDOM.nextInt(this.order);
                         c2 = RANDOM.nextInt(this.order);
                     } while (c1 == c2);
 
+                    // Update diagonal sums after column swap
                     sumDiagsEnd -= (childValues[c1][c1] + childValues[this.order - 1 - c1][c1]);
                     sumDiagsEnd -= (childValues[c2][c2] + childValues[this.order - 1 - c2][c2]);
-
                     MatrixUtils.switchCols(childValues, c1, c2);
-
                     sumDiagsEnd += (childValues[c1][c1] + childValues[this.order - 1 - c1][c1]);
                     sumDiagsEnd += (childValues[c2][c2] + childValues[this.order - 1 - c2][c2]);
                 }
 
                 diffEnd = Math.abs((2 * this.magicSum) - sumDiagsEnd);
-
             } while (diffEnd > diffStart);
 
-            /*
-             * This child is known to be at least semi-magic
-             */
+            // The child is known to be at least semi-magic
             child = new MagicSquare(childValues, true);
-
         } else {
-
-            /*
-             * Pick a swap by open rows or open cols
-             */
+            // For non-semi-magic squares, we focus on improving rows and columns
             final boolean openRowSwap;
-
             if (!(this.openRows.isEmpty() || this.openCols.isEmpty())) {
+                // Randomly choose between improving rows or columns
                 openRowSwap = RANDOM.nextBoolean();
             } else {
+                // If one list is empty, choose the other
                 openRowSwap = this.openCols.isEmpty();
             }
 
             if (openRowSwap) {
-
+                // Swap values between two open rows
                 final int size = this.openRows.size();
                 final int idx1 = RANDOM.nextInt(size);
                 int idx2;
@@ -302,19 +284,13 @@ public class MagicSquare implements Comparable<MagicSquare> {
                     idx2 = RANDOM.nextInt(size);
                 } while (idx2 == idx1);
 
-                /*
-                 * Value exchange
-                 */
                 final int r1 = this.openRows.get(idx1);
                 final int c1 = RANDOM.nextInt(this.order);
-
                 final int r2 = this.openRows.get(idx2);
                 final int c2 = RANDOM.nextInt(this.order);
-
                 MatrixUtils.switchValues(childValues, r1, c1, r2, c2);
-
             } else {
-
+                // Swap values between two open columns
                 final int size = this.openCols.size();
                 final int idx1 = RANDOM.nextInt(size);
                 int idx2;
@@ -322,22 +298,14 @@ public class MagicSquare implements Comparable<MagicSquare> {
                     idx2 = RANDOM.nextInt(size);
                 } while (idx2 == idx1);
 
-                /*
-                 * Value exchange
-                 */
                 final int r1 = RANDOM.nextInt(this.order);
                 final int c1 = this.openCols.get(idx1);
-
                 final int r2 = RANDOM.nextInt(this.order);
                 final int c2 = this.openCols.get(idx2);
-
                 MatrixUtils.switchValues(childValues, r1, c1, r2, c2);
-
             }
 
-            /*
-             * This child may or may not be semi-magic
-             */
+            // The child may or may not be semi-magic
             child = new MagicSquare(childValues, false);
         }
 
@@ -362,28 +330,28 @@ public class MagicSquare implements Comparable<MagicSquare> {
     }
 
     /**
-     * @return the magic sum of this magic square
+     * @return the current score of this magic square
      */
     public int getScore() {
         return this.score;
     }
 
     /**
-     * @return the magic sum of this magic square
+     * @return the maximum possible score for this magic square
      */
     public int getMaxScore() {
         return this.maxScore;
     }
 
     /**
-     * @return the magic sum of this magic square
+     * @return whether this square is semi-magic (all rows and columns sum correctly)
      */
     public boolean isSemiMagic() {
         return this.isSemiMagic;
     }
 
     /**
-     * @return the magic sum of this magic square
+     * @return whether this square is fully magic (all rows, columns, and diagonals sum correctly)
      */
     public boolean isMagic() {
         return this.isMagic;
