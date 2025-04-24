@@ -48,7 +48,8 @@ public class MagicSquare implements Comparable<MagicSquare> {
      *
      * @param values the values of the magic square
      * @param isSemiMagic true if this instance is known to be at least be
-     *                    semi-magic (used as an optimization to shortcut calculations)
+     *                    semi-magic (used as an optimization to shortcut calculations),
+     *                    false if it is not known to be semi-magic (may be semi-magic or not)
      */
     private MagicSquare(int[][] values, boolean isSemiMagic) {
 
