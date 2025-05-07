@@ -5,6 +5,8 @@ import org.openjdk.jmh.runner.Runner;
 import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.TimeUnit;
 
@@ -17,9 +19,8 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Fork(value = 1, warmups = 0)
 @Warmup(iterations = 0)
-@Measurement(iterations = 7)
+@Measurement(iterations = 11)
 public class SearchBenchmark {
-
     /**
      * The order (size) of the magic square to search for.
      * Tested with different values to measure performance scaling.
@@ -35,7 +36,8 @@ public class SearchBenchmark {
      */
     @Benchmark
     public MagicSquare benchmarkFindSolution() {
-        final int numThreads = Math.max(3, Runtime.getRuntime().availableProcessors() / 2);
+        final int availableProcessors = Runtime.getRuntime().availableProcessors();
+        final int numThreads = Math.max(3, (availableProcessors * 2) / 3);
         return MagicSquareWorker.search(order, numThreads);
     }
 

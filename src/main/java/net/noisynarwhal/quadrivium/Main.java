@@ -54,7 +54,8 @@ public class Main {
             // Calculate number of threads
             final int numThreads;
             if (requestedThreads <= 0) {
-                numThreads = Math.max(3, Runtime.getRuntime().availableProcessors() / 2);
+                final int availableProcessors = Runtime.getRuntime().availableProcessors();
+                numThreads = Math.max(3, (availableProcessors * 2) / 3);
                 logger.debug("Auto-detected thread count: {}", numThreads);
             } else {
                 numThreads = requestedThreads;
