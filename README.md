@@ -82,17 +82,17 @@ Performance benchmarks were run using JMH (Java Microbenchmark Harness) with the
 
 | Order | Average Time | Error (±) |
 |-------|-------------|-----------|
-| 19    | 0.060 s     | 0.003 s   |
-| 29    | 0.622 s     | 0.060 s   |
-| 41    | 4.987 s     | 1.100 s   |
-| 59    | 44.368 s    | 10.261 s  |
+| 19    | 0.058 s     | 0.001 s   |
+| 29    | 0.605 s     | 0.031 s   |
+| 41    | 4.983 s     | 0.666 s   |
+| 59    | 43.183 s    | 5.244 s   |
 
 The benchmarks were run on:
 - JDK 17.0.14
 - Java HotSpot(TM) 64-Bit Server VM
 - Apple M2 Pro with 12 cores
 - 16 GB unified memory
-- Multi-threaded execution (using 6 worker threads, half of available processors)
+- Multi-threaded execution (using 8 worker threads, the default setting of two-thirds of available processors)
 
 ## API Usage
 

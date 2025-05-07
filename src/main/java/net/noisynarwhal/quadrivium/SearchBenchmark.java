@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 @OutputTimeUnit(TimeUnit.SECONDS)
 @Fork(value = 1, warmups = 0)
 @Warmup(iterations = 0)
-@Measurement(iterations = 11)
+@Measurement(iterations = 7)
 public class SearchBenchmark {
     /**
      * The order (size) of the magic square to search for.
