@@ -39,12 +39,12 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      */
     @Override
     public MagicSquare call() {
-        MagicSquare magic = MagicSquare.build(order);
-        while (!(magic.isMagic() || firstSolution.isDone())) {
+        MagicSquare magic = MagicSquare.build(this.order);
+        while (!(magic.isMagic() || this.firstSolution.isDone())) {
             magic = magic.evolve();
         }
         if (magic.isMagic()) {
-            firstSolution.complete(magic);
+            this.firstSolution.complete(magic);
         }
         return magic;
     }
@@ -76,7 +76,7 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             
             for (int i = 0; i < numThreads; i++) {
                 final Callable<MagicSquare> worker = new MagicSquareWorker(order, firstSolution);
-                CompletableFuture<MagicSquare> future = CompletableFuture.supplyAsync(() -> {
+                final CompletableFuture<MagicSquare> future = CompletableFuture.supplyAsync(() -> {
                     try {
                         return worker.call();
                     } catch (Exception e) {

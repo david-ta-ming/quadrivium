@@ -370,8 +370,8 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
     /**
      * Compares two Magic instances for equality.
-     * @param obj
-     * @return
+     * @param obj the object to be compared
+     * @return true if the two instances are equal, false otherwise
      */
     @Override
     public boolean equals(Object obj) {
