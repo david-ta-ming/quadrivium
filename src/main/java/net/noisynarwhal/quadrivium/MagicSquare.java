@@ -266,16 +266,22 @@ public class MagicSquare implements Comparable<MagicSquare> {
             child = new MagicSquare(childValues, true);
         } else {
             // For non-semi-magic squares, we focus on improving rows and columns
-            final boolean openRowSwap;
+
+            // Swap values between two open rows or columns; if true, swap rows else swap columns
+            final boolean openRowOrColSwap;
             if (!(this.openRows.isEmpty() || this.openCols.isEmpty())) {
                 // Randomly choose between improving rows or columns
-                openRowSwap = RANDOM.nextBoolean();
+                openRowOrColSwap = RANDOM.nextBoolean();
             } else {
                 // If one list is empty, choose the other
-                openRowSwap = this.openCols.isEmpty();
+                openRowOrColSwap = this.openCols.isEmpty();
             }
 
-            if (openRowSwap) {
+            final int r1;
+            final int c1;
+            final int r2;
+            final int c2;
+            if (openRowOrColSwap) {
                 // Swap values between two open rows
                 final int size = this.openRows.size();
                 final int idx1 = RANDOM.nextInt(size);
@@ -284,11 +290,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
                     idx2 = RANDOM.nextInt(size);
                 } while (idx2 == idx1);
 
-                final int r1 = this.openRows.get(idx1);
-                final int c1 = RANDOM.nextInt(this.order);
-                final int r2 = this.openRows.get(idx2);
-                final int c2 = RANDOM.nextInt(this.order);
-                MatrixUtils.switchValues(childValues, r1, c1, r2, c2);
+                r1 = this.openRows.get(idx1);
+                c1 = RANDOM.nextInt(this.order);
+                r2 = this.openRows.get(idx2);
+                c2 = RANDOM.nextInt(this.order);
             } else {
                 // Swap values between two open columns
                 final int size = this.openCols.size();
@@ -298,12 +303,12 @@ public class MagicSquare implements Comparable<MagicSquare> {
                     idx2 = RANDOM.nextInt(size);
                 } while (idx2 == idx1);
 
-                final int r1 = RANDOM.nextInt(this.order);
-                final int c1 = this.openCols.get(idx1);
-                final int r2 = RANDOM.nextInt(this.order);
-                final int c2 = this.openCols.get(idx2);
-                MatrixUtils.switchValues(childValues, r1, c1, r2, c2);
+                r1 = RANDOM.nextInt(this.order);
+                c1 = this.openCols.get(idx1);
+                r2 = RANDOM.nextInt(this.order);
+                c2 = this.openCols.get(idx2);
             }
+            MatrixUtils.switchValues(childValues, r1, c1, r2, c2);
 
             // The child may or may not be semi-magic
             child = new MagicSquare(childValues, false);
