@@ -329,38 +329,45 @@ public class MatrixUtils {
      * @throws NullPointerException if the input reader is null
      */
     public static int[][] read(final Reader in) throws IOException {
-
-        final int[][] matrix;
-
         final List<int[]> rows = new ArrayList<>();
-
         final BufferedReader reader = (in instanceof BufferedReader) ? (BufferedReader) in : new BufferedReader(in);
 
         String line;
         while ((line = reader.readLine()) != null) {
-
             line = line.trim();
-
             if (!line.isEmpty()) {
-
                 final String[] vals = line.split("\\s+");
-
                 final int[] row = new int[vals.length];
                 for (int i = 0; i < vals.length; i++) {
-                    row[i] = Integer.parseInt(vals[i]);
+                    int val = Integer.parseInt(vals[i]);
+                    if (val <= 0) {
+                        throw new IllegalArgumentException("All values must be positive integers");
+                    }
+                    row[i] = val;
                 }
-
                 rows.add(row);
-
             }
-
         }
 
-        matrix = new int[rows.size()][];
+        if (rows.isEmpty()) {
+            throw new IllegalArgumentException("Empty matrix");
+        }
 
-        int i = 0;
-        for (final int[] row : rows) {
-            matrix[i++] = row;
+        final int size = rows.size();
+        if (size < 3) {
+            throw new IllegalArgumentException("Matrix must be at least 3x3 for magic squares");
+        }
+
+        // Check that all rows have the same length
+        for (int[] row : rows) {
+            if (row.length != size) {
+                throw new IllegalArgumentException("Matrix must be square (all rows must have the same length)");
+            }
+        }
+
+        final int[][] matrix = new int[size][];
+        for (int i = 0; i < size; i++) {
+            matrix[i] = rows.get(i);
         }
 
         return matrix;
