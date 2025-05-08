@@ -343,10 +343,54 @@ class MagicSquareTest {
         standardized = MatrixUtils.standardize(magicSquare);
         assertTrue(MatrixUtils.valuesEqual(expectedMagic, standardized));
     }
-}
 
-class MatrixUtilsTest {
-    
+    @Test
+    void testMatrixUtilsIsMagic() {
+        // Test a valid magic square
+        int[][] validMagicSquare = {
+            {8, 1, 6},
+            {3, 5, 7},
+            {4, 9, 2}
+        };
+        assertTrue(MatrixUtils.isMagic(validMagicSquare), "Valid magic square should return true");
+
+        // Test a non-magic square (rows don't sum to same value)
+        int[][] nonMagicSquare = {
+            {1, 2, 3},
+            {4, 5, 6},
+            {7, 8, 9}
+        };
+        assertFalse(MatrixUtils.isMagic(nonMagicSquare), "Non-magic square should return false");
+
+        // Test a non-square matrix
+        int[][] nonSquareMatrix = {
+            {1, 2, 3},
+            {4, 5, 6}
+        };
+        assertThrows(IllegalArgumentException.class, () -> MatrixUtils.isMagic(nonSquareMatrix),
+            "Non-square matrix should throw IllegalArgumentException");
+
+        // Test with null
+        assertThrows(NullPointerException.class, () -> MatrixUtils.isMagic(null),
+            "Null matrix should throw NullPointerException");
+    }
+
+    @Test
+    void testMagicSquareWorkerSearch() {
+        // Test searching for a magic square of order 11
+        int order = 11;
+        
+        final int availableProcessors = Runtime.getRuntime().availableProcessors();
+        final int numThreads = Math.max(3, (availableProcessors * 2) / 3);
+        
+        MagicSquare result = MagicSquareWorker.search(order, numThreads);
+        
+        assertNotNull(result, "Search should return a result");
+        assertEquals(order, result.getOrder(), "Result should have the requested order");
+        assertTrue(result.isMagic(), "Result should be a valid magic square");
+        assertTrue(MatrixUtils.isMagic(result.getValues()), "Result should be a valid magic square");
+    }
+
     @Test
     void testReadAndPrintMatrix() throws IOException {
         // Test matrix to use
