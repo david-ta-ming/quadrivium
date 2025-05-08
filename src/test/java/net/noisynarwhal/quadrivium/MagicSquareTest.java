@@ -1,6 +1,8 @@
 package net.noisynarwhal.quadrivium;
 
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,9 +12,11 @@ import java.io.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class MagicSquareTest {
+    private static final Logger logger = LoggerFactory.getLogger(MagicSquareTest.class);
 
     @Test
     void testBuildWithValidOrder() {
+        logger.info("Testing building a magic square with valid order");
         // Test building a magic square with valid order
         int order = 3;
         MagicSquare square = MagicSquare.build(order);
@@ -20,10 +24,12 @@ class MagicSquareTest {
         assertNotNull(square);
         assertEquals(order, square.getOrder());
         assertEquals(order + order + 2, square.getMaxScore());
+        logger.info("Successfully tested building a magic square with valid order");
     }
 
     @Test
     void testBuildWithExistingValues() {
+        logger.info("Testing building a magic square with predefined values");
         // Test building a magic square with predefined values
         int[][] values = {
                 {8, 1, 6},
@@ -36,10 +42,12 @@ class MagicSquareTest {
         assertNotNull(square);
         assertEquals(3, square.getOrder());
         assertTrue(square.isMagic());
+        logger.info("Successfully tested building a magic square with predefined values");
     }
 
     @Test
     void testGetValues() {
+        logger.info("Testing getValues returns a defensive copy");
         // Test that getValues returns a defensive copy
         int[][] values = {
                 {8, 1, 6},
@@ -55,10 +63,12 @@ class MagicSquareTest {
 
         // Original square should be unchanged
         assertNotEquals(retrievedValues[0][0], square.getValues()[0][0]);
+        logger.info("Successfully tested getValues returns a defensive copy");
     }
 
     @Test
     void testEqualsAndHashCode() {
+        logger.info("Testing equals and hashCode methods");
         int[][] values1 = {
                 {8, 1, 6},
                 {3, 5, 7},
@@ -76,10 +86,12 @@ class MagicSquareTest {
 
         assertEquals(square1, square2);
         assertEquals(square1.hashCode(), square2.hashCode());
+        logger.info("Successfully tested equals and hashCode methods");
     }
 
     @Test
     void testCompareTo() {
+        logger.info("Testing compareTo method");
         MagicSquare square1 = MagicSquare.build(3);
         MagicSquare square2 = MagicSquare.build(3);
 
@@ -92,10 +104,12 @@ class MagicSquareTest {
 
         // Null comparison
         assertThrows(NullPointerException.class, () -> square1.compareTo(null));
+        logger.info("Successfully tested compareTo method");
     }
 
     @Test
     void testCollectionSorting() {
+        logger.info("Testing collection sorting of magic squares");
         // Create squares with different scores
         int[][] values1 = {
                 {8, 1, 6},
@@ -121,10 +135,12 @@ class MagicSquareTest {
         // After sorting, square1 (higher score) should be first
         assertSame(square1, squares.get(0), "Higher scoring square should be first after sorting");
         assertSame(square2, squares.get(1), "Lower scoring square should be second after sorting");
+        logger.info("Successfully tested collection sorting of magic squares");
     }
 
     @Test
     void testIsSemiMagic() {
+        logger.info("Testing semi-magic square detection");
         // A semi-magic square has all rows and columns summing to magic constant
         // but diagonals may not
         int[][] semiMagicValues = {
@@ -135,47 +151,54 @@ class MagicSquareTest {
 
         MagicSquare square = MagicSquare.build(semiMagicValues);
         assertFalse(square.isMagic());
-        // Note: This may need adjustment based on actual implementation
-        // as the current implementation might require specific properties
-        // for semi-magic determination
+        logger.info("Successfully tested semi-magic square detection");
     }
 
     @Test
     void testBuildWithInvalidOrder() {
+        logger.info("Testing building magic squares with invalid orders");
         // Test building a magic square with invalid order
         assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(2));
         assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(0));
         assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(-1));
+        logger.info("Successfully tested building magic squares with invalid orders");
     }
 
     @Test
     void testBuildWithNonSquareMatrix() {
+        logger.info("Testing building with non-square matrix");
         // Test building with non-square matrix
         int[][] nonSquareValues = {
                 {1, 2, 3},
                 {4, 5, 6}
         };
         assertThrows(IllegalArgumentException.class, () -> MagicSquare.build(nonSquareValues));
+        logger.info("Successfully tested building with non-square matrix");
     }
 
     @Test
     void testBuildWithNullValues() {
+        logger.info("Testing building with null values");
         // Test building with null values
         assertThrows(NullPointerException.class, () -> MagicSquare.build((int[][]) null));
+        logger.info("Successfully tested building with null values");
     }
 
     @Test
     void testEvolve() {
+        logger.info("Testing evolve method");
         // Test that evolve() produces a square with equal or better score
         MagicSquare square = MagicSquare.build(3);
         int initialScore = square.getScore();
         
         MagicSquare evolved = square.evolve();
         assertTrue(evolved.getScore() >= initialScore);
+        logger.info("Successfully tested evolve method");
     }
 
     @Test
     void testNewChild() {
+        logger.info("Testing newChild method");
         // Test that newChild() produces a valid square
         MagicSquare square = MagicSquare.build(3);
         MagicSquare child = square.newChild();
@@ -184,10 +207,12 @@ class MagicSquareTest {
         assertEquals(square.getOrder(), child.getOrder());
         assertTrue(child.getScore() >= 0);
         assertTrue(child.getScore() <= child.getMaxScore());
+        logger.info("Successfully tested newChild method");
     }
 
     @Test
     void testMagicSum() {
+        logger.info("Testing magic sum calculation");
         // Test magic sum calculation for different orders
         int[][] magic3x3 = {
                 {8, 1, 6},
@@ -205,10 +230,12 @@ class MagicSquareTest {
         };
         MagicSquare square4 = MagicSquare.build(magic4x4);
         assertEquals(10, square4.getScore()); // 4 rows + 4 columns + 2 diagonals = 10
+        logger.info("Successfully tested magic sum calculation");
     }
 
     @Test
     void testToString() {
+        logger.info("Testing string representation");
         // Test string representation
         int[][] values = {
                 {8, 1, 6},
@@ -221,10 +248,12 @@ class MagicSquareTest {
         assertTrue(str.contains("[8, 1, 6]"));
         assertTrue(str.contains("[3, 5, 7]"));
         assertTrue(str.contains("[4, 9, 2]"));
+        logger.info("Successfully tested string representation");
     }
 
     @Test
     void testSemiMagicSquare() {
+        logger.info("Testing non-semi-magic square detection");
         // Test a non-semi-magic square (rows and columns don't sum to magic constant)
         int[][] nonSemiMagicValues = {
                 {1, 2, 3},
@@ -234,10 +263,12 @@ class MagicSquareTest {
         MagicSquare square = MagicSquare.build(nonSemiMagicValues);
         assertFalse(square.isSemiMagic());
         assertFalse(square.isMagic());
+        logger.info("Successfully tested non-semi-magic square detection");
     }
 
     @Test
     void testNonMagicSquare() {
+        logger.info("Testing non-magic square detection");
         // Test a non-magic square
         int[][] nonMagicValues = {
                 {1, 2, 3},
@@ -247,10 +278,12 @@ class MagicSquareTest {
         MagicSquare square = MagicSquare.build(nonMagicValues);
         assertFalse(square.isSemiMagic());
         assertFalse(square.isMagic());
+        logger.info("Successfully tested non-magic square detection");
     }
 
     @Test
     void testCompareToWithDifferentScores() {
+        logger.info("Testing compareTo with squares of different scores");
         // Test comparison with squares of different scores
         int[][] highScoreValues = {
                 {8, 1, 6},
@@ -268,10 +301,12 @@ class MagicSquareTest {
         
         assertTrue(highScore.compareTo(lowScore) < 0); // Higher score should be "less" (comes first)
         assertTrue(lowScore.compareTo(highScore) > 0); // Lower score should be "greater"
+        logger.info("Successfully tested compareTo with squares of different scores");
     }
 
     @Test
     void testCompareToWithEqualScores() {
+        logger.info("Testing compareTo with squares of equal scores");
         // Test comparison with squares of equal scores but different values
         int[][] values1 = {
                 {8, 1, 6},
@@ -289,10 +324,12 @@ class MagicSquareTest {
         
         // Should compare lexicographically since scores are equal
         assertNotEquals(0, square1.compareTo(square2));
+        logger.info("Successfully tested compareTo with squares of equal scores");
     }
 
     @Test
     public void testStandardize() {
+        logger.info("Testing matrix standardization");
         // Test with a simple 2x2 matrix
         int[][] matrix = {
             {1, 2},
@@ -342,10 +379,12 @@ class MagicSquareTest {
         
         standardized = MatrixUtils.standardize(magicSquare);
         assertTrue(MatrixUtils.valuesEqual(expectedMagic, standardized));
+        logger.info("Successfully tested matrix standardization");
     }
 
     @Test
     void testMatrixUtilsIsMagic() {
+        logger.info("Testing MatrixUtils.isMagic method");
         // Test a valid magic square
         int[][] validMagicSquare = {
             {8, 1, 6},
@@ -373,10 +412,12 @@ class MagicSquareTest {
         // Test with null
         assertThrows(NullPointerException.class, () -> MatrixUtils.isMagic(null),
             "Null matrix should throw NullPointerException");
+        logger.info("Successfully tested MatrixUtils.isMagic method");
     }
 
     @Test
     void testMagicSquareWorkerSearch() {
+        logger.info("Testing MagicSquareWorker.search() with order 11");
         // Test searching for a magic square of order 11
         int order = 11;
         
@@ -389,10 +430,12 @@ class MagicSquareTest {
         assertEquals(order, result.getOrder(), "Result should have the requested order");
         assertTrue(result.isMagic(), "Result should be a valid magic square");
         assertTrue(MatrixUtils.isMagic(result.getValues()), "Result should be a valid magic square");
+        logger.info("Successfully tested MagicSquareWorker.search() with order 11");
     }
 
     @Test
     void testReadAndPrintMatrix() throws IOException {
+        logger.info("Testing matrix read and print operations");
         // Test matrix to use
         int[][] original = {
             {8, 1, 6},
@@ -420,10 +463,12 @@ class MagicSquareTest {
                 assertArrayEquals(original[i], read[i]);
             }
         }
+        logger.info("Successfully tested matrix read and print operations");
     }
     
     @Test
     void testReadFromString() throws IOException {
+        logger.info("Testing reading matrix from string");
         String input = "1 2 3\n4 5 6\n7 8 9";
         
         try (StringReader reader = new StringReader(input)) {
@@ -435,10 +480,12 @@ class MagicSquareTest {
             assertEquals(5, matrix[1][1]);
             assertEquals(9, matrix[2][2]);
         }
+        logger.info("Successfully tested reading matrix from string");
     }
     
     @Test
     void testPrintToWriter() throws IOException {
+        logger.info("Testing printing matrix to writer");
         int[][] matrix = {
             {1, 2, 3},
             {4, 5, 6},
@@ -460,10 +507,12 @@ class MagicSquareTest {
         for (String line : lines) {
             assertTrue(line.matches("\\s*\\d+\\s+\\d+\\s+\\d+\\s*"));
         }
+        logger.info("Successfully tested printing matrix to writer");
     }
     
     @Test
     void testReadWithExtraWhitespace() throws IOException {
+        logger.info("Testing reading matrix with extra whitespace");
         String input = "  1  2  3  \n  4  5  6  \n  7  8  9  ";
         
         try (StringReader reader = new StringReader(input)) {
@@ -475,10 +524,12 @@ class MagicSquareTest {
             assertEquals(5, matrix[1][1]);
             assertEquals(9, matrix[2][2]);
         }
+        logger.info("Successfully tested reading matrix with extra whitespace");
     }
     
     @Test
     void testReadEmptyLines() throws IOException {
+        logger.info("Testing reading matrix with empty lines");
         String input = "\n1 2 3\n\n4 5 6\n\n7 8 9\n\n";
         
         try (StringReader reader = new StringReader(input)) {
@@ -490,5 +541,6 @@ class MagicSquareTest {
             assertEquals(5, matrix[1][1]);
             assertEquals(9, matrix[2][2]);
         }
+        logger.info("Successfully tested reading matrix with empty lines");
     }
 }
