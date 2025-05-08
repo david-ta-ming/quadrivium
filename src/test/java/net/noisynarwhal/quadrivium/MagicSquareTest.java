@@ -1,6 +1,7 @@
 package net.noisynarwhal.quadrivium;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -8,6 +9,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.io.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -416,6 +421,7 @@ class MagicSquareTest {
     }
 
     @Test
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
     void testMagicSquareWorkerSearch() {
         logger.info("Testing MagicSquareWorker.search() with order 11");
         // Test searching for a magic square of order 11
@@ -542,5 +548,115 @@ class MagicSquareTest {
             assertEquals(9, matrix[2][2]);
         }
         logger.info("Successfully tested reading matrix with empty lines");
+    }
+
+    @Test
+    void testMagicSquareWorkerInvalidInputs() {
+        logger.info("Testing MagicSquareWorker with invalid inputs");
+        assertThrows(IllegalArgumentException.class, () -> MagicSquareWorker.search(2, 1),
+            "Order less than 3 should throw IllegalArgumentException");
+        assertThrows(IllegalArgumentException.class, () -> MagicSquareWorker.search(3, 0),
+            "Zero threads should throw IllegalArgumentException");
+        assertThrows(IllegalArgumentException.class, () -> MagicSquareWorker.search(3, -1),
+            "Negative threads should throw IllegalArgumentException");
+        logger.info("Successfully tested MagicSquareWorker with invalid inputs");
+    }
+
+    @Test
+    @Timeout(value = 30, unit = TimeUnit.SECONDS)
+    void testMagicSquareWorkerSingleThread() {
+        logger.info("Testing MagicSquareWorker with single thread");
+        MagicSquare result = MagicSquareWorker.search(7, 1);
+        assertNotNull(result, "Search should return a result");
+        assertEquals(7, result.getOrder(), "Result should have the requested order");
+        assertTrue(result.isMagic(), "Result should be a valid magic square");
+        logger.info("Successfully tested MagicSquareWorker with single thread");
+    }
+
+    @Test
+    @Timeout(value = 10, unit = TimeUnit.SECONDS)
+    void testEvolutionChain() {
+        logger.info("Testing evolution chain");
+        MagicSquare square = MagicSquare.build(3);
+        int initialScore = square.getScore();
+        
+        // Evolve multiple times
+        for (int i = 0; i < 10; i++) {
+            square = square.evolve();
+            assertTrue(square.getScore() >= initialScore, 
+                "Score should never decrease during evolution");
+            initialScore = square.getScore();
+        }
+        logger.info("Successfully tested evolution chain");
+    }
+
+    @Test
+    void testMatrixUtilsReadWithInvalidInput() {
+        logger.info("Testing MatrixUtils.read with invalid input");
+        String invalidInput = "1 2 3\n4 5\n7 8 9"; // Inconsistent row lengths
+        
+        try (StringReader reader = new StringReader(invalidInput)) {
+            assertThrows(IllegalArgumentException.class, () -> MatrixUtils.read(reader),
+                "Reading matrix with inconsistent row lengths should throw IllegalArgumentException");
+        }
+        logger.info("Successfully tested MatrixUtils.read with invalid input");
+    }
+
+    @Test
+    void testMatrixUtilsReadWithNonNumericInput() {
+        logger.info("Testing MatrixUtils.read with non-numeric input");
+        String invalidInput = "1 2 3\n4 abc 6\n7 8 9";
+        
+        try (StringReader reader = new StringReader(invalidInput)) {
+            assertThrows(NumberFormatException.class, () -> MatrixUtils.read(reader),
+                "Reading matrix with non-numeric values should throw NumberFormatException");
+        }
+        logger.info("Successfully tested MatrixUtils.read with non-numeric input");
+    }
+
+    @Test
+    @Timeout(value = 60, unit = TimeUnit.SECONDS)
+    void testMagicSquareWorkerThreadSafety() {
+        logger.info("Testing MagicSquareWorker thread safety");
+        int order = 11;
+        int numThreads = 4;
+        
+        // Run multiple searches in parallel
+        ExecutorService executor = Executors.newFixedThreadPool(numThreads);
+        List<Future<MagicSquare>> futures = new ArrayList<>();
+        
+        for (int i = 0; i < numThreads; i++) {
+            futures.add(executor.submit(() -> MagicSquareWorker.search(order, numThreads)));
+        }
+        
+        // Verify all results are valid magic squares
+        for (Future<MagicSquare> future : futures) {
+            try {
+                MagicSquare result = future.get(45, TimeUnit.SECONDS); // Add timeout for each future
+                assertNotNull(result, "Search should return a result");
+                assertEquals(order, result.getOrder(), "Result should have the requested order");
+                assertTrue(result.isMagic(), "Result should be a valid magic square");
+            } catch (Exception e) {
+                fail("Unexpected exception during parallel search", e);
+            }
+        }
+        
+        executor.shutdown();
+        logger.info("Successfully tested MagicSquareWorker thread safety");
+    }
+
+    @Test
+    @Timeout(value = 120, unit = TimeUnit.SECONDS)
+    void testMagicSquareWorkerWithLargeOrder() {
+        logger.info("Testing MagicSquareWorker with large order");
+        int order = 35; // Using a relatively large order
+        int numThreads = Runtime.getRuntime().availableProcessors() / 2; // Half the available processors
+        
+        MagicSquare result = MagicSquareWorker.search(order, numThreads);
+        
+        assertNotNull(result, "Search should return a result");
+        assertEquals(order, result.getOrder(), "Result should have the requested order");
+        assertTrue(result.isMagic(), "Result should be a valid magic square");
+        logger.info("Successfully tested MagicSquareWorker with large order");
     }
 }
