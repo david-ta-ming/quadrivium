@@ -102,7 +102,7 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 }
             }
 
-            // If all rows and columns sum correctly, it's semi-magic
+            // If all rows and columns sum correctly, it's at least semi-magic
             this.isSemiMagic = (scoreSum == this.maxScore - 2);
         }
 
@@ -120,7 +120,7 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 sumrl += this.values[i][this.order - 1 - i];
             }
 
-            // If both diagonals sum to magic constant, add 2 to score
+            // If both diagonals sum to magic constant, add 2 to score (one for each diagonal)
             if (magicSum == sumlr && magicSum == sumrl) {
                 scoreSum += 2;
             }
