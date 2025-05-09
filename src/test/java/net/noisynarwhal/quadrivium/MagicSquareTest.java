@@ -636,6 +636,7 @@ class MagicSquareTest {
                 assertNotNull(result, "Search should return a result");
                 assertEquals(order, result.getOrder(), "Result should have the requested order");
                 assertTrue(result.isMagic(), "Result should be a valid magic square");
+                assertTrue(MatrixUtils.isMagic(result.getValues()), "Result should be a valid magic square");
             } catch (Exception e) {
                 fail("Unexpected exception during parallel search", e);
             }
@@ -657,6 +658,7 @@ class MagicSquareTest {
         assertNotNull(result, "Search should return a result");
         assertEquals(order, result.getOrder(), "Result should have the requested order");
         assertTrue(result.isMagic(), "Result should be a valid magic square");
+        assertTrue(MatrixUtils.isMagic(result.getValues()), "Result should be a valid magic square");
         logger.info("Successfully tested MagicSquareWorker with large order");
     }
 }
