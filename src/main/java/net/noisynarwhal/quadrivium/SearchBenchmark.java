@@ -7,6 +7,7 @@ import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ch.qos.logback.classic.Level;
 
 import java.util.concurrent.TimeUnit;
 
@@ -29,6 +30,21 @@ public class SearchBenchmark {
     private int order;
 
     /**
+     * Setup method that runs before benchmarks to set the log level to INFO
+     */
+    @Setup
+    public void setup() {
+        // Set logging level to INFO for the benchmark runs
+        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)
+                LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.WARN);
+
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)
+                LoggerFactory.getLogger("net.noisynarwhal.quadrivium");
+        logger.setLevel(Level.WARN);
+    }
+
+    /**
      * Benchmark method that searches for a magic square of the specified order.
      * Uses auto-detected number of threads based on available processors.
      *
@@ -49,6 +65,15 @@ public class SearchBenchmark {
      * @throws RunnerException if there is an error running the benchmark
      */
     public static void main(String[] args) throws RunnerException {
+        // Set logging level to INFO for the benchmark runs
+        ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)
+                LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+        root.setLevel(Level.WARN);
+
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger)
+                LoggerFactory.getLogger("net.noisynarwhal.quadrivium");
+        logger.setLevel(Level.WARN);
+
         Options opt = new OptionsBuilder()
                 .include(SearchBenchmark.class.getSimpleName())
                 .build();
