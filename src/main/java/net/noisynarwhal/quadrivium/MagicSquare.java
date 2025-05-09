@@ -39,6 +39,14 @@ public class MagicSquare implements Comparable<MagicSquare> {
     private final List<Integer> openRows = new ArrayList<>();
     /** Indices of columns that do not sum to the magic constant */
     private final List<Integer> openCols = new ArrayList<>();
+    /** Row sums cache */
+    private final int[] rowSums;
+    /** Column sums cache */
+    private final int[] colSums;
+    /** Left-right diagonal sum cache */
+    private final int diagLRSum;
+    /** Right-left diagonal sum cache */
+    private final int diagRLSum;
 
     /**
      * Instantiates a new Magic instance. This instance maintains a reference to
@@ -63,38 +71,51 @@ public class MagicSquare implements Comparable<MagicSquare> {
         // Maximum score is when all rows, columns, and both diagonals sum to magicSum
         this.maxScore = this.order + this.order + 2;
 
+        // Initialize row and column sum arrays
+        this.rowSums = new int[this.order];
+        this.colSums = new int[this.order];
+
+        // Calculate row and column sums
+        for (int i = 0; i < this.order; i++) {
+            int rowSum = 0;
+            int colSum = 0;
+            for (int j = 0; j < this.order; j++) {
+                rowSum += this.values[i][j];
+                colSum += this.values[j][i];
+            }
+            this.rowSums[i] = rowSum;
+            this.colSums[i] = colSum;
+        }
+
+        // Calculate diagonal sums
+        int lrDiagSum = 0;
+        int rlDiagSum = 0;
+        for (int i = 0; i < this.order; i++) {
+            lrDiagSum += this.values[i][i];
+            rlDiagSum += this.values[i][this.order - 1 - i];
+        }
+        this.diagLRSum = lrDiagSum;
+        this.diagRLSum = rlDiagSum;
+
         int scoreSum = 0;
 
         if (isSemiMagic) {
             // If we know it's semi-magic, all rows and columns sum correctly
-            scoreSum = this.maxScore - 2;
+            scoreSum = this.order + this.order;
             this.isSemiMagic = true;
         } else {
             // Check each row and column
             for (int i = 0; i < this.order; i++) {
-                /*
-                 * Score of rows
-                 */
-                int sumRow = 0;
-                /*
-                 * Score of cols
-                 */
-                int sumCol = 0;
-
-                for (int j = 0; j < this.order; j++) {
-                    sumRow += this.values[i][j];
-                    sumCol += this.values[j][i];
-                }
-
                 // If row sums to magic constant, increment score
-                if (this.magicSum == sumRow) {
+                if (this.magicSum == this.rowSums[i]) {
                     scoreSum++;
                 } else {
                     // Otherwise, add to list of rows needing improvement
                     this.openRows.add(i);
                 }
+
                 // If column sums to magic constant, increment score
-                if (this.magicSum == sumCol) {
+                if (this.magicSum == this.colSums[i]) {
                     scoreSum++;
                 } else {
                     // Otherwise, add to list of columns needing improvement
@@ -103,26 +124,148 @@ public class MagicSquare implements Comparable<MagicSquare> {
             }
 
             // If all rows and columns sum correctly, it's at least semi-magic
-            this.isSemiMagic = (scoreSum == this.maxScore - 2);
+            this.isSemiMagic = (scoreSum == this.order + this.order);
         }
 
         if (this.isSemiMagic) {
-            /*
-             * Score of left-to-right diagonal
-             */
-            int sumlr = 0;
-            /*
-             * Score of right-to-left diagonal
-             */
-            int sumrl = 0;
-            for (int i = 0; i < this.order; i++) {
-                sumlr += this.values[i][i];
-                sumrl += this.values[i][this.order - 1 - i];
+            // Check if both diagonals sum to magic constant
+            if (magicSum == this.diagLRSum) {
+                scoreSum++;
             }
 
-            // If both diagonals sum to magic constant, add 2 to score (one for each diagonal)
-            if (magicSum == sumlr && magicSum == sumrl) {
-                scoreSum += 2;
+            if (magicSum == this.diagRLSum) {
+                scoreSum++;
+            }
+        }
+
+        this.score = scoreSum;
+        this.isMagic = scoreSum == this.maxScore;
+    }
+
+    /**
+     * Instantiates a new Magic instance with optimized score calculation
+     * by tracking changes in specified positions.
+     *
+     * @param values The matrix values
+     * @param parent The parent MagicSquare instance
+     * @param r1 Row index of first swapped position
+     * @param c1 Column index of first swapped position
+     * @param r2 Row index of second swapped position
+     * @param c2 Column index of second swapped position
+     */
+    private MagicSquare(int[][] values, MagicSquare parent, int r1, int c1, int r2, int c2) {
+        this.values = values;
+        this.order = values.length;
+        this.magicSum = this.order * (this.order * this.order + 1) / 2;
+        this.maxScore = this.order + this.order + 2;
+
+        // For swapped values, we need to selectively update the affected sums
+
+        // Start with copy of parent's row and column sums
+        this.rowSums = Arrays.copyOf(parent.rowSums, this.order);
+        this.colSums = Arrays.copyOf(parent.colSums, this.order);
+
+        // If we're swapping values in the same row, only update column sums
+        if (r1 == r2) {
+            // Row sum doesn't change when swapping within the same row
+            // Only need to update column sums
+            int val1 = this.values[r1][c1];
+            int val2 = this.values[r2][c2];
+
+            // Update column sums by removing old values and adding new ones
+            this.colSums[c1] = parent.colSums[c1] - val2 + val1;
+            this.colSums[c2] = parent.colSums[c2] - val1 + val2;
+        }
+        // If we're swapping values in the same column, only update row sums
+        else if (c1 == c2) {
+            // Column sum doesn't change when swapping within the same column
+            // Only need to update row sums
+            int val1 = this.values[r1][c1];
+            int val2 = this.values[r2][c2];
+
+            // Update row sums by removing old values and adding new ones
+            this.rowSums[r1] = parent.rowSums[r1] - val2 + val1;
+            this.rowSums[r2] = parent.rowSums[r2] - val1 + val2;
+        }
+        // If swapping between different rows and columns, update both
+        else {
+            int val1 = this.values[r1][c1];
+            int val2 = this.values[r2][c2];
+
+            // Update row sums
+            this.rowSums[r1] = parent.rowSums[r1] - parent.values[r1][c1] + val1;
+            this.rowSums[r2] = parent.rowSums[r2] - parent.values[r2][c2] + val2;
+
+            // Update column sums
+            this.colSums[c1] = parent.colSums[c1] - parent.values[r1][c1] + val1;
+            this.colSums[c2] = parent.colSums[c2] - parent.values[r2][c2] + val2;
+        }
+
+        // Check if any diagonals are affected
+        boolean lrDiagAffected = (r1 == c1) || (r2 == c2);
+        boolean rlDiagAffected = (r1 + c1 == this.order - 1) || (r2 + c2 == this.order - 1);
+
+        // Calculate diagonal sums - recalculate if affected, otherwise use parent's value
+        int lrDiagSum;
+        int rlDiagSum;
+
+        if (lrDiagAffected) {
+            // Recalculate left-right diagonal sum
+            lrDiagSum = 0;
+            for (int i = 0; i < this.order; i++) {
+                lrDiagSum += this.values[i][i];
+            }
+        } else {
+            lrDiagSum = parent.diagLRSum;
+        }
+
+        if (rlDiagAffected) {
+            // Recalculate right-left diagonal sum
+            rlDiagSum = 0;
+            for (int i = 0; i < this.order; i++) {
+                rlDiagSum += this.values[i][this.order - 1 - i];
+            }
+        } else {
+            rlDiagSum = parent.diagRLSum;
+        }
+
+        this.diagLRSum = lrDiagSum;
+        this.diagRLSum = rlDiagSum;
+
+        // Calculate score and determine open rows/columns
+        int scoreSum = 0;
+
+        // Check each row and column
+        for (int i = 0; i < this.order; i++) {
+            // If row sums to magic constant, increment score
+            if (this.magicSum == this.rowSums[i]) {
+                scoreSum++;
+            } else {
+                // Otherwise, add to list of rows needing improvement
+                this.openRows.add(i);
+            }
+
+            // If column sums to magic constant, increment score
+            if (this.magicSum == this.colSums[i]) {
+                scoreSum++;
+            } else {
+                // Otherwise, add to list of columns needing improvement
+                this.openCols.add(i);
+            }
+        }
+
+        // If all rows and columns sum correctly, it's at least semi-magic
+        this.isSemiMagic = (scoreSum == this.order + this.order);
+
+        // If semi-magic, check diagonals
+        if (this.isSemiMagic) {
+            // Check if diagonals sum to magic constant
+            if (magicSum == this.diagLRSum) {
+                scoreSum++;
+            }
+
+            if (magicSum == this.diagRLSum) {
+                scoreSum++;
             }
         }
 
@@ -218,12 +361,7 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
         if (this.isSemiMagic) {
             // For semi-magic squares, we focus on improving the diagonals
-            int sumDiagsStart = 0;
-            for (int j = 0; j < this.order; j++) {
-                sumDiagsStart += childValues[j][j];
-                sumDiagsStart += childValues[j][this.order - 1 - j];
-            }
-
+            int sumDiagsStart = this.diagLRSum + this.diagRLSum;
             final int diffStart = Math.abs((2 * this.magicSum) - sumDiagsStart);
             int sumDiagsEnd = sumDiagsStart;
             int diffEnd;
@@ -288,7 +426,7 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 int idx2;
                 do {
                     idx2 = RANDOM.nextInt(size);
-                } while (idx2 == idx1);
+                } while (idx2 == idx1 && size > 1);
 
                 r1 = this.openRows.get(idx1);
                 c1 = RANDOM.nextInt(this.order);
@@ -301,17 +439,19 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 int idx2;
                 do {
                     idx2 = RANDOM.nextInt(size);
-                } while (idx2 == idx1);
+                } while (idx2 == idx1 && size > 1);
 
                 r1 = RANDOM.nextInt(this.order);
                 c1 = this.openCols.get(idx1);
                 r2 = RANDOM.nextInt(this.order);
                 c2 = this.openCols.get(idx2);
             }
+
+            // Perform the swap
             MatrixUtils.switchValues(childValues, r1, c1, r2, c2);
 
-            // The child may or may not be semi-magic
-            child = new MagicSquare(childValues, false);
+            // Create a new child with optimized score calculation
+            child = new MagicSquare(childValues, this, r1, c1, r2, c2);
         }
 
         return child;
