@@ -34,7 +34,7 @@ public class SearchBenchmark {
      */
     @Setup
     public void setup() {
-        // Set logging level to INFO for the benchmark runs
+        // Set logging level to WARN for the benchmark runs
         ch.qos.logback.classic.Logger root = (ch.qos.logback.classic.Logger)
                 LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
         root.setLevel(Level.WARN);
