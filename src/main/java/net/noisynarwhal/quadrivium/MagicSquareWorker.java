@@ -28,7 +28,7 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     /** Worker ID for logging purposes */
     private final int workerId;
     /** Number of iterations between checks for better solutions */
-    private static final long SHARING_FREQUENCY = 1000000L;
+    private static final long SHARING_FREQUENCY = 500000L;
     /** Number of iterations between score logging */
     private static final long LOGGING_FREQUENCY = 10000000L;
 
