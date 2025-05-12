@@ -4,6 +4,11 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.concurrent.*;
 
 /**
@@ -90,6 +95,8 @@ public class Main {
                 logger.info("Search completed in {} hours", durationHours);
             }
 
+            Main.writeToFile(magic);
+
         } catch (ParseException e) {
             logger.error("Failed to parse command line arguments", e);
             printHelp(options);
@@ -136,5 +143,59 @@ public class Main {
                 options,
                 "\nExample: java -jar quadrivium.jar --order 4 --threads 8\n",
                 true);
+    }
+
+    private static File writeToFile(MagicSquare magic) {
+        if (magic == null) {
+            logger.warn("Magic square is null, cannot write to file.");
+            throw new IllegalArgumentException("Magic square is null");
+        }
+
+        final File ftmp;
+
+        final int[][] values = MatrixUtils.standardize(magic.getValues());
+        final int order = magic.getOrder();
+
+        // Flatten the matrix to a string of digits
+        final StringBuilder flat = new StringBuilder();
+        for (final int[] row : values) {
+            for (final int val : row) {
+                flat.append(val);
+            }
+        }
+        final String flatString = flat.toString();
+
+        try {
+            // Compute MD5 hash
+            final MessageDigest md = MessageDigest.getInstance("MD5");
+            final byte[] digest = md.digest(flatString.getBytes(StandardCharsets.UTF_8));
+            final StringBuilder hex = new StringBuilder();
+            for (final byte b : digest) {
+                hex.append(String.format("%02x", b));
+            }
+            // Take first 16 characters
+            final String hash = hex.substring(0, 16);
+
+            // Build filename
+            final String filename = order + "_"
+                    + values[0][0] + "-"
+                    + values[0][1] + "-"
+                    + values[0][2] + "_"
+                    + hash + ".txt";
+
+            ftmp = new File(System.getProperty("java.io.tmpdir"), filename);
+            final String result = MatrixUtils.print(values);
+
+            // Write file
+            try (final BufferedWriter writer = new BufferedWriter(new FileWriter(ftmp))) {
+                writer.write(result);
+                writer.flush();
+            }
+
+            logger.debug("Magic square saved to temp file: {}", ftmp.getAbsolutePath());
+            return ftmp;
+        } catch (Exception e) {
+            throw new RuntimeException("Error saving to file", e);
+        }
     }
 }
