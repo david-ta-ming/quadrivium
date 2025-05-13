@@ -72,14 +72,18 @@ public class Main {
 
             final MagicSquare magic = MagicSquareWorker.search(order, numThreads);
 
+            final long durationNanos = System.nanoTime() - start;
+
             if(magic != null) {
+                if(!MatrixUtils.isMagic(magic.getValues())) {
+                    throw new RuntimeException("Magic square is not valid");
+                }
                 final String result = MatrixUtils.print(magic.getValues());
                 logger.info("Found magic square solution:\n{}", result);
             } else {
                 logger.info("No magic square solution found");
             }
 
-            final long durationNanos = System.nanoTime() - start;
             final long durationMillis = TimeUnit.MILLISECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
             final long durationSeconds = TimeUnit.SECONDS.convert(durationNanos, TimeUnit.NANOSECONDS);
             final long durationMinutes = TimeUnit.MINUTES.convert(durationNanos, TimeUnit.NANOSECONDS);
