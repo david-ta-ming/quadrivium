@@ -20,7 +20,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public class MagicSquare implements Comparable<MagicSquare> {
     private static final Logger logger = LoggerFactory.getLogger(MagicSquare.class);
     /** Thread-local random number generator for thread safety */
-    private final Random RANDOM = ThreadLocalRandom.current();
+    private static final Random RANDOM = ThreadLocalRandom.current();
     /** The magic constant that all rows, columns, and diagonals should sum to */
     private final int magicSum;
     /** The order (size) of the magic square */
@@ -35,10 +35,14 @@ public class MagicSquare implements Comparable<MagicSquare> {
     private final boolean isSemiMagic;
     /** Whether this square is fully magic (all rows, columns, and diagonals sum to magicSum) */
     private final boolean isMagic;
-    /** Indices of rows that do not sum to the magic constant */
-    private final List<Integer> openRows = new ArrayList<>();
-    /** Indices of columns that do not sum to the magic constant */
-    private final List<Integer> openCols = new ArrayList<>();
+    /** BitSet tracking rows that do not sum to the magic constant */
+    private final BitSet openRowsBits;
+    /** BitSet tracking columns that do not sum to the magic constant */
+    private final BitSet openColsBits;
+    /** Count of open rows for quick access */
+    private final int openRowsCount;
+    /** Count of open columns for quick access */
+    private final int openColsCount;
     /** Row sums cache */
     private final int[] rowSums;
     /** Column sums cache */
@@ -75,6 +79,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
         this.rowSums = new int[this.order];
         this.colSums = new int[this.order];
 
+        // Initialize BitSets for open rows and columns
+        this.openRowsBits = new BitSet(this.order);
+        this.openColsBits = new BitSet(this.order);
+
         // Calculate row and column sums
         for (int i = 0; i < this.order; i++) {
             int rowSum = 0;
@@ -103,25 +111,36 @@ public class MagicSquare implements Comparable<MagicSquare> {
             // If we know it's semi-magic, all rows and columns sum correctly
             scoreSum = this.order + this.order;
             this.isSemiMagic = true;
+            // No open rows or columns in semi-magic squares
+            this.openRowsCount = 0;
+            this.openColsCount = 0;
         } else {
             // Check each row and column
+            int openRows = 0;
+            int openCols = 0;
+            
             for (int i = 0; i < this.order; i++) {
                 // If row sums to magic constant, increment score
                 if (this.magicSum == this.rowSums[i]) {
                     scoreSum++;
                 } else {
-                    // Otherwise, add to list of rows needing improvement
-                    this.openRows.add(i);
+                    // Otherwise, mark as open in the BitSet
+                    this.openRowsBits.set(i);
+                    openRows++;
                 }
 
                 // If column sums to magic constant, increment score
                 if (this.magicSum == this.colSums[i]) {
                     scoreSum++;
                 } else {
-                    // Otherwise, add to list of columns needing improvement
-                    this.openCols.add(i);
+                    // Otherwise, mark as open in the BitSet
+                    this.openColsBits.set(i);
+                    openCols++;
                 }
             }
+            
+            this.openRowsCount = openRows;
+            this.openColsCount = openCols;
 
             // If all rows and columns sum correctly, it's at least semi-magic
             this.isSemiMagic = (scoreSum == this.order + this.order);
@@ -159,11 +178,13 @@ public class MagicSquare implements Comparable<MagicSquare> {
         this.magicSum = this.order * (this.order * this.order + 1) / 2;
         this.maxScore = this.order + this.order + 2;
 
-        // For swapped values, we need to selectively update the affected sums
-
         // Start with copy of parent's row and column sums
         this.rowSums = Arrays.copyOf(parent.rowSums, this.order);
         this.colSums = Arrays.copyOf(parent.colSums, this.order);
+
+        // Create new BitSets initialized from parent's BitSets
+        this.openRowsBits = (BitSet) parent.openRowsBits.clone();
+        this.openColsBits = (BitSet) parent.openColsBits.clone();
 
         // If we're swapping values in the same row, only update column sums
         if (r1 == r2) {
@@ -175,6 +196,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
             // Update column sums by removing old values and adding new ones
             this.colSums[c1] = parent.colSums[c1] - val2 + val1;
             this.colSums[c2] = parent.colSums[c2] - val1 + val2;
+            
+            // Update open columns BitSet based on new sums
+            updateColumnBitSet(c1);
+            updateColumnBitSet(c2);
         }
         // If we're swapping values in the same column, only update row sums
         else if (c1 == c2) {
@@ -186,6 +211,10 @@ public class MagicSquare implements Comparable<MagicSquare> {
             // Update row sums by removing old values and adding new ones
             this.rowSums[r1] = parent.rowSums[r1] - val2 + val1;
             this.rowSums[r2] = parent.rowSums[r2] - val1 + val2;
+            
+            // Update open rows BitSet based on new sums
+            updateRowBitSet(r1);
+            updateRowBitSet(r2);
         }
         // If swapping between different rows and columns, update both
         else {
@@ -199,6 +228,12 @@ public class MagicSquare implements Comparable<MagicSquare> {
             // Update column sums
             this.colSums[c1] = parent.colSums[c1] - parent.values[r1][c1] + val1;
             this.colSums[c2] = parent.colSums[c2] - parent.values[r2][c2] + val2;
+            
+            // Update BitSets based on new sums
+            updateRowBitSet(r1);
+            updateRowBitSet(r2);
+            updateColumnBitSet(c1);
+            updateColumnBitSet(c2);
         }
 
         // Check if any diagonals are affected
@@ -231,31 +266,16 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
         this.diagLRSum = lrDiagSum;
         this.diagRLSum = rlDiagSum;
+        
+        // Store the counts for quick access
+        this.openRowsCount = this.openRowsBits.cardinality();
+        this.openColsCount = this.openColsBits.cardinality();
 
-        // Calculate score and determine open rows/columns
-        int scoreSum = 0;
-
-        // Check each row and column
-        for (int i = 0; i < this.order; i++) {
-            // If row sums to magic constant, increment score
-            if (this.magicSum == this.rowSums[i]) {
-                scoreSum++;
-            } else {
-                // Otherwise, add to list of rows needing improvement
-                this.openRows.add(i);
-            }
-
-            // If column sums to magic constant, increment score
-            if (this.magicSum == this.colSums[i]) {
-                scoreSum++;
-            } else {
-                // Otherwise, add to list of columns needing improvement
-                this.openCols.add(i);
-            }
-        }
+        // Calculate score
+        int scoreSum = this.order - this.openRowsCount + this.order - this.openColsCount;
 
         // If all rows and columns sum correctly, it's at least semi-magic
-        this.isSemiMagic = (scoreSum == this.order + this.order);
+        this.isSemiMagic = (this.openRowsCount == 0 && this.openColsCount == 0);
 
         // If semi-magic, check diagonals
         if (this.isSemiMagic) {
@@ -271,6 +291,30 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
         this.score = scoreSum;
         this.isMagic = scoreSum == this.maxScore;
+    }
+    
+    /**
+     * Updates the BitSet for a specific row based on its sum
+     * @param rowIndex the index of the row to update
+     */
+    private void updateRowBitSet(int rowIndex) {
+        if (this.rowSums[rowIndex] == this.magicSum) {
+            this.openRowsBits.clear(rowIndex);
+        } else {
+            this.openRowsBits.set(rowIndex);
+        }
+    }
+    
+    /**
+     * Updates the BitSet for a specific column based on its sum
+     * @param colIndex the index of the column to update
+     */
+    private void updateColumnBitSet(int colIndex) {
+        if (this.colSums[colIndex] == this.magicSum) {
+            this.openColsBits.clear(colIndex);
+        } else {
+            this.openColsBits.set(colIndex);
+        }
     }
 
     /**
@@ -293,7 +337,7 @@ public class MagicSquare implements Comparable<MagicSquare> {
         }
 
         // Shuffle the numbers randomly
-        Collections.shuffle(valuesList, ThreadLocalRandom.current());
+        Collections.shuffle(valuesList, RANDOM);
 
         // Fill the square with the shuffled numbers
         final Iterator<Integer> it = valuesList.iterator();
@@ -345,6 +389,32 @@ public class MagicSquare implements Comparable<MagicSquare> {
         }
 
         return magic;
+    }
+
+    /**
+     * Select a random index from a BitSet. Returns -1 if empty.
+     * @param bits BitSet to select from
+     * @return randomly selected index, or -1 if BitSet is empty
+     */
+    private static int selectRandomBitIndex(BitSet bits, int cardinality) {
+        if (cardinality == 0) {
+            return -1;
+        }
+        
+        // Fast path for single bit
+        if (cardinality == 1) {
+            return bits.nextSetBit(0);
+        }
+        
+        // Select a random bit from the set bits
+        int targetBit = RANDOM.nextInt(cardinality);
+        int currentBit = -1;
+        
+        for (int i = 0; i <= targetBit; i++) {
+            currentBit = bits.nextSetBit(currentBit + 1);
+        }
+        
+        return currentBit;
     }
 
     /**
@@ -407,12 +477,12 @@ public class MagicSquare implements Comparable<MagicSquare> {
 
             // Swap values between two open rows or columns; if true, swap rows else swap columns
             final boolean openRowOrColSwap;
-            if (!(this.openRows.isEmpty() || this.openCols.isEmpty())) {
+            if (!(this.openRowsCount == 0 || this.openColsCount == 0)) {
                 // Randomly choose between improving rows or columns
                 openRowOrColSwap = RANDOM.nextBoolean();
             } else {
                 // If one list is empty, choose the other
-                openRowOrColSwap = this.openCols.isEmpty();
+                openRowOrColSwap = this.openColsCount == 0;
             }
 
             final int r1;
@@ -421,30 +491,40 @@ public class MagicSquare implements Comparable<MagicSquare> {
             final int c2;
             if (openRowOrColSwap) {
                 // Swap values between two open rows
-                final int size = this.openRows.size();
-                final int idx1 = RANDOM.nextInt(size);
+                int idx1 = selectRandomBitIndex(this.openRowsBits, this.openRowsCount);
                 int idx2;
-                do {
-                    idx2 = RANDOM.nextInt(size);
-                } while (idx2 == idx1 && size > 1);
+                
+                if (this.openRowsCount > 1) {
+                    // Need to select a different row
+                    do {
+                        idx2 = selectRandomBitIndex(this.openRowsBits, this.openRowsCount);
+                    } while (idx2 == idx1);
+                } else {
+                    idx2 = idx1; // Only one row to choose
+                }
 
-                r1 = this.openRows.get(idx1);
+                r1 = idx1;
                 c1 = RANDOM.nextInt(this.order);
-                r2 = this.openRows.get(idx2);
+                r2 = idx2;
                 c2 = RANDOM.nextInt(this.order);
             } else {
                 // Swap values between two open columns
-                final int size = this.openCols.size();
-                final int idx1 = RANDOM.nextInt(size);
+                int idx1 = selectRandomBitIndex(this.openColsBits, this.openColsCount);
                 int idx2;
-                do {
-                    idx2 = RANDOM.nextInt(size);
-                } while (idx2 == idx1 && size > 1);
+                
+                if (this.openColsCount > 1) {
+                    // Need to select a different column
+                    do {
+                        idx2 = selectRandomBitIndex(this.openColsBits, this.openColsCount);
+                    } while (idx2 == idx1);
+                } else {
+                    idx2 = idx1; // Only one column to choose
+                }
 
                 r1 = RANDOM.nextInt(this.order);
-                c1 = this.openCols.get(idx1);
+                c1 = idx1;
                 r2 = RANDOM.nextInt(this.order);
-                c2 = this.openCols.get(idx2);
+                c2 = idx2;
             }
 
             // Perform the swap
