@@ -102,20 +102,8 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      * @param current The current square to consider
      */
     private void updateBestSquare(MagicSquare current) {
-        // Keep trying to update until either we succeed or someone else updates with an even better square
-        while (true) {
-            MagicSquare existing = bestSquare.get();
-
-            // If current is better than existing best, attempt to update
-            if (existing == null || current.getScore() > existing.getScore()) {
-                if (bestSquare.compareAndSet(existing, current)) {
-                    break; // Update successful
-                }
-                // If update failed, someone else updated the reference concurrently, so try again
-            } else {
-                break; // Current not better than existing, no update needed
-            }
-        }
+        bestSquare.updateAndGet(existing ->
+                (existing == null || current.getScore() > existing.getScore()) ? current : existing);
     }
 
     /**
