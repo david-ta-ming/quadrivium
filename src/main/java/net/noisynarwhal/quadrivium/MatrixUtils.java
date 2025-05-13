@@ -82,15 +82,9 @@ public class MatrixUtils {
      * @throws NullPointerException if the matrix is null
      */
     public static void switchRows(final int[][] matrix, final int r1, final int r2) {
-
-        final int r2len = matrix[r2].length;
-
-        final int[] valsR2 = new int[r2len];
-
-        System.arraycopy(matrix[r2], 0, valsR2, 0, r2len);
-
-        matrix[r2] = matrix[r1];
-        matrix[r1] = valsR2;
+        final int[] temp = matrix[r1];
+        matrix[r1] = matrix[r2];
+        matrix[r2] = temp;
     }
 
     /**
