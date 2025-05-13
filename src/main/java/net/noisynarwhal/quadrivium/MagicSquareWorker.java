@@ -12,7 +12,6 @@ import java.util.concurrent.atomic.AtomicReference;
  * Worker class for MagicSquare that implements Callable to search for magic squares in parallel.
  * A magic square is a square grid filled with distinct numbers such that the numbers in each row,
  * each column, and both main diagonals all add up to the same value.
- *
  * This implementation includes a shared best solution mechanism that allows workers to
  * periodically check for and adopt better solutions found by other workers.
  */
@@ -25,12 +24,8 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     private final CompletableFuture<MagicSquare> firstSolution;
     /** Shared reference to the current best square across all workers */
     private final AtomicReference<MagicSquare> bestSquare;
-    /** Worker ID for logging purposes */
-    private final int workerId;
     /** Number of iterations between checks for better solutions */
     private static final long SHARING_FREQUENCY = 500000L;
-    /** Number of iterations between score logging */
-    private static final long LOGGING_FREQUENCY = 10000000L;
 
     /**
      * Constructor for MagicSquareWorker
@@ -38,14 +33,12 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      * @param order The order of the magic square (size of the square grid)
      * @param firstSolution CompletableFuture that will be completed with the first valid solution
      * @param bestSquare Shared atomic reference to the current best square
-     * @param workerId The ID of this worker for logging purposes
      */
     private MagicSquareWorker(int order, CompletableFuture<MagicSquare> firstSolution,
-                              AtomicReference<MagicSquare> bestSquare, int workerId) {
+                              AtomicReference<MagicSquare> bestSquare) {
         this.order = order;
         this.firstSolution = firstSolution;
         this.bestSquare = bestSquare;
-        this.workerId = workerId;
     }
 
     /**
@@ -73,9 +66,10 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             if (magic.getScore() > bestSquare.get().getScore()) {
                 updateBestSquare(magic);
 
+                final float scoreRatio = ((float) magic.getScore()) / ((float) magic.getMaxScore());
                 // Log when we find a significantly better square
-                logger.debug("Worker {} found better square with score: {}/{}",
-                        workerId, magic.getScore(), magic.getMaxScore());
+                logger.debug("Found square with score: {}/{} ({}%)",
+                        magic.getScore(), magic.getMaxScore(), String.format("%.2f", scoreRatio * 100));
             }
 
             // Periodically check if another worker has found a better solution
@@ -84,9 +78,6 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
 
                 // If another worker has a better solution, adopt it
                 if (currentBest.getScore() > magic.getScore()) {
-                    logger.debug("Worker {} adopting better solution from another worker with score: {}/{}",
-                            workerId, currentBest.getScore(), currentBest.getMaxScore());
-
                     // Clone the best square and continue evolving from there
                     magic = MagicSquare.build(currentBest.getValues());
                 }
@@ -94,17 +85,11 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
 
             // Log progress periodically
             iteration++;
-            if (iteration % LOGGING_FREQUENCY == 0) {
-                float scoreRatio = ((float) magic.getScore()) / ((float) magic.getMaxScore());
-                logger.debug("Worker {}: Iteration={}, Score={}/{} ({}%)",
-                        workerId, iteration, magic.getScore(), magic.getMaxScore(),
-                        String.format("%.2f", scoreRatio * 100));
-            }
         }
 
         if (magic.isMagic()) {
             this.firstSolution.complete(magic);
-            logger.info("Worker {} found magic square solution!", workerId);
+            logger.info("Found magic square solution!");
         }
 
         return magic;
@@ -161,8 +146,7 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             List<CompletableFuture<MagicSquare>> futures = new ArrayList<>();
 
             for (int i = 0; i < numThreads; i++) {
-                final int workerId = i + 1; // Worker IDs start from 1
-                final Callable<MagicSquare> worker = new MagicSquareWorker(order, firstSolution, bestSquare, workerId);
+                final Callable<MagicSquare> worker = new MagicSquareWorker(order, firstSolution, bestSquare);
                 final CompletableFuture<MagicSquare> future = CompletableFuture.supplyAsync(() -> {
                     try {
                         return worker.call();
