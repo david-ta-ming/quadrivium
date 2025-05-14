@@ -76,11 +76,11 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             magic = magic.evolve();
 
             // Check if we found a better solution
-            if(magic.getScore() > this.bestSquare.get().getScore()) {
+            if(magic != this.bestSquare.get() && (magic.getScore() > this.bestSquare.get().getScore())) {
                try {
                    LOCK.lock();
                    // Double-check pattern to ensure thread safety
-                   if(magic.getScore() > this.bestSquare.get().getScore()) {
+                   if(magic != this.bestSquare.get() && (magic.getScore() > this.bestSquare.get().getScore())) {
                        this.bestSquare.set(magic);
 
                        final float scoreRatio = ((float) magic.getScore()) / ((float) magic.getMaxScore());
