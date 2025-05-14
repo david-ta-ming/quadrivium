@@ -22,13 +22,11 @@ import java.util.concurrent.locks.ReentrantLock;
 public class MagicSquareWorker implements Callable<MagicSquare> {
     /** Logger instance for this class */
     private static final Logger logger = LoggerFactory.getLogger(MagicSquareWorker.class);
-    /** The order of the magic square (size of the square grid) */
-    private final int order;
+    private final File stateFile;
     /** CompletableFuture that will be completed with the first valid solution */
     private final CompletableFuture<MagicSquare> firstSolution;
     /** Shared reference to the current best square across all workers */
     private final AtomicReference<MagicSquare> bestSquare;
-    private final File stateFile;
     /** Number of iterations between checks for better solutions */
     private static final long SHARING_FREQUENCY = 500000L;
     private static final Lock LOCK = new ReentrantLock();
@@ -36,12 +34,10 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     /**
      * Constructor for MagicSquareWorker
      *
-     * @param order The order of the magic square (size of the square grid)
      * @param firstSolution CompletableFuture that will be completed with the first valid solution
      * @param bestSquare Shared atomic reference to the current best square
      */
-    private MagicSquareWorker(int order, CompletableFuture<MagicSquare> firstSolution, AtomicReference<MagicSquare> bestSquare, File stateFile) {
-        this.order = order;
+    private MagicSquareWorker(CompletableFuture<MagicSquare> firstSolution, AtomicReference<MagicSquare> bestSquare, File stateFile) {
         this.firstSolution = firstSolution;
         this.bestSquare = bestSquare;
         this.stateFile = stateFile;
@@ -57,53 +53,42 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      */
     @Override
     public MagicSquare call() throws IOException {
-        // Start with a random magic square
-        MagicSquare magic;
 
-        if(this.stateFile != null && this.stateFile.canRead() && this.stateFile.length() > 0) {
-            try {
-                LOCK.lock();
-                magic = MagicSquareState.load(this.stateFile);
-            } finally {
-                LOCK.unlock();
-            }
-        } else {
-            magic = MagicSquare.build(this.order);
+        if(this.bestSquare.get() == null) {
+           throw new IllegalStateException("Starting magic square is null");
         }
 
-        // Initialize the best square with our starting point if no better one exists
-        updateBestSquare(magic);
+        MagicSquare magic = this.bestSquare.get();
 
         long iteration = 0;
         while (!(magic.isMagic() || this.firstSolution.isDone())) {
             // Evolve the current square
             magic = magic.evolve();
 
-            // Update the best square if this one is better
-            if (magic.getScore() > this.bestSquare.get().getScore()) {
-                try {
-                    LOCK.lock();
+            if(magic.getScore() > this.bestSquare.get().getScore()) {
+               try {
+                   LOCK.lock();
+                   // Update the best square if this one is better
+                   if(magic.getScore() > this.bestSquare.get().getScore()) {
+                       this.bestSquare.set(magic);
 
-                    if (magic.getScore() > this.bestSquare.get().getScore()) {
-                        updateBestSquare(magic);
+                       final float scoreRatio = ((float) magic.getScore()) / ((float) magic.getMaxScore());
+                       // Log when we find a significantly better square
+                       logger.debug("Found square with score: {}/{} ({}%)", magic.getScore(), magic.getMaxScore(), String.format("%.2f", scoreRatio * 100));
 
-                        final float scoreRatio = ((float) magic.getScore()) / ((float) magic.getMaxScore());
-                        // Log when we find a significantly better square
-                        logger.debug("Found square with score: {}/{} ({}%)", magic.getScore(), magic.getMaxScore(), String.format("%.2f", scoreRatio * 100));
-
-                        // Save the best square to a file if specified
-                        if (this.stateFile != null) {
-                            MagicSquareState.save(magic, this.stateFile);
-                        }
-                    }
-                } finally {
-                    LOCK.unlock();
-                }
+                       // Save the best square to a file if specified
+                       if (this.stateFile != null) {
+                           MagicSquareState.save(magic, this.stateFile);
+                       }
+                   }
+               } finally {
+                   LOCK.unlock();
+               }
             }
 
             // Periodically check if another worker has found a better solution
             if (iteration % SHARING_FREQUENCY == 0) {
-                MagicSquare currentBest = this.bestSquare.get();
+                final MagicSquare currentBest = this.bestSquare.get();
 
                 // If another worker has a better solution, adopt it
                 if (currentBest.getScore() > magic.getScore()) {
@@ -130,12 +115,17 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      *
      * @param current The current square to consider
      */
-    private void updateBestSquare(final MagicSquare current) {
-        this.bestSquare.updateAndGet(existing -> (existing == null || current.getScore() > existing.getScore()) ? current : existing);
+    private MagicSquare updateBestSquare(final MagicSquare current) {
+        return this.bestSquare.updateAndGet(existing -> (existing == null || current.getScore() > existing.getScore()) ? current : existing);
     }
 
     public static MagicSquare search(int order, int numThreads) {
-        return MagicSquareWorker.search(order, numThreads, null);
+        try {
+            return MagicSquareWorker.search(order, numThreads, null);
+        } catch (IOException e) {
+            // should not happen
+            throw new RuntimeException("Failed to load magic square", e);
+        }
     }
 
     /**
@@ -149,7 +139,7 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
      * @return A valid magic square if found, otherwise null
      * @throws IllegalArgumentException if order is less than 3 or numThreads is less than or equal to 0
      */
-    public static MagicSquare search(int order, int numThreads, File stateFile) {
+    public static MagicSquare search(int order, int numThreads, File stateFile) throws IOException {
         if (order < 3) {
             throw new IllegalArgumentException("Order must be at least 3");
         }
@@ -160,13 +150,21 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
 
         final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
         final CompletableFuture<MagicSquare> firstSolution = new CompletableFuture<>();
-        final AtomicReference<MagicSquare> bestSquare = new AtomicReference<>(null);
+
+        final MagicSquare start;
+        if(stateFile != null && stateFile.canRead() && stateFile.length() > 0) {
+            start = MagicSquareState.load(stateFile);
+        } else {
+            start = MagicSquare.build(order);
+        }
+
+        final AtomicReference<MagicSquare> bestSquare = new AtomicReference<>(start);
 
         try {
             List<CompletableFuture<MagicSquare>> futures = new ArrayList<>();
 
             for (int i = 0; i < numThreads; i++) {
-                final Callable<MagicSquare> worker = new MagicSquareWorker(order, firstSolution, bestSquare, stateFile);
+                final Callable<MagicSquare> worker = new MagicSquareWorker(firstSolution, bestSquare, stateFile);
                 final CompletableFuture<MagicSquare> future = CompletableFuture.supplyAsync(() -> {
                     try {
                         return worker.call();

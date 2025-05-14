@@ -33,7 +33,7 @@ public class Main {
      *             -o <order>: Specify the order (size) of the magic square (default: 30)
      *             -t <threads>: Specify number of threads (default: 0 for auto-detect)
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         final Options options = createOptions();
         final CommandLineParser parser = new DefaultParser();
 
