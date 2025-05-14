@@ -48,8 +48,16 @@ public class Main {
             }
 
             // Parse options with defaults
-            int order = Integer.parseInt(cmd.getOptionValue('o', DEFAULT_ORDER));
-            int requestedThreads = Integer.parseInt(cmd.getOptionValue('t', DEFAULT_THREADS));
+            final int order = Integer.parseInt(cmd.getOptionValue('o', DEFAULT_ORDER));
+            final int requestedThreads = Integer.parseInt(cmd.getOptionValue('t', DEFAULT_THREADS));
+
+            final File stateFile;
+            if(cmd.hasOption('f')) {
+                stateFile = new File(cmd.getOptionValue('f'));
+                logger.info("Using state file: {}", stateFile.getAbsolutePath());
+            } else {
+                stateFile = null;
+            }
 
             // Validate order
             if (order < 3) {
@@ -70,7 +78,7 @@ public class Main {
 
             final long start = System.nanoTime();
 
-            final MagicSquare magic = MagicSquareWorker.search(order, numThreads);
+            final MagicSquare magic = MagicSquareWorker.search(order, numThreads, stateFile);
 
             final long durationNanos = System.nanoTime() - start;
 
@@ -128,6 +136,13 @@ public class Main {
                 .desc("Number of threads to use (default: auto-detect)")
                 .hasArg()
                 .type(Number.class)
+                .build());
+
+        options.addOption(Option.builder("f")
+                .longOpt("file")
+                .desc("Resume from or save search to file (optional)")
+                .hasArg()
+                .type(String.class)
                 .build());
 
         options.addOption("h", "help", false, "Print this help message");
