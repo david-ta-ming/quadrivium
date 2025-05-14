@@ -85,3 +85,6 @@ jacoco.exec
 *.ec
 *.em
 dependency-reduced-pom.xml
+
+# Quadrivium state files
+*.qstate.txt
