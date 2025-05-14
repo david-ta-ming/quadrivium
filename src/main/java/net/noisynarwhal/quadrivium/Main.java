@@ -164,6 +164,16 @@ public class Main {
                 true);
     }
 
+    /**
+     * Writes a magic square solution to a temporary file.
+     * The filename is constructed using the order, first three values, and an MD5 hash
+     * to ensure uniqueness and easy identification of different solutions.
+     *
+     * @param magic The magic square solution to write to file
+     * @return The temporary file containing the magic square
+     * @throws IllegalArgumentException if the magic square is null
+     * @throws RuntimeException if there's an error writing to the file
+     */
     private static File writeToFile(MagicSquare magic) {
         if (magic == null) {
             logger.warn("Magic square is null, cannot write to file.");
@@ -172,10 +182,11 @@ public class Main {
 
         final File ftmp;
 
+        // Standardize the magic square to ensure consistent representation
         final int[][] values = MatrixUtils.standardize(magic.getValues());
         final int order = magic.getOrder();
 
-        // Flatten the matrix to a string of digits
+        // Flatten the matrix to a string of digits for hashing
         final StringBuilder flat = new StringBuilder();
         for (final int[] row : values) {
             for (final int val : row) {
@@ -185,17 +196,19 @@ public class Main {
         final String flatString = flat.toString();
 
         try {
-            // Compute MD5 hash
+            // Generate MD5 hash of the flattened matrix to create a unique identifier
+            // This helps distinguish between different solutions of the same order
             final MessageDigest md = MessageDigest.getInstance("MD5");
             final byte[] digest = md.digest(flatString.getBytes(StandardCharsets.UTF_8));
             final StringBuilder hex = new StringBuilder();
             for (final byte b : digest) {
                 hex.append(String.format("%02x", b));
             }
-            // Take first 16 characters
+            // Use first 16 characters of the hash for a shorter but still unique filename
             final String hash = hex.substring(0, 16);
 
-            // Build filename
+            // Construct filename format: order_first3values_hash.txt
+            // Example: 4_1-2-3_a1b2c3d4e5f6g7h8.txt
             final String filename = order + "_"
                     + values[0][0] + "-"
                     + values[0][1] + "-"
@@ -205,7 +218,7 @@ public class Main {
             ftmp = new File(System.getProperty("java.io.tmpdir"), filename);
             final String result = MatrixUtils.print(values);
 
-            // Write file
+            // Write the formatted magic square to the temporary file
             try (final BufferedWriter writer = new BufferedWriter(new FileWriter(ftmp))) {
                 writer.write(result);
                 writer.flush();
