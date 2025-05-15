@@ -179,6 +179,9 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             start = MagicSquare.build(order);
         }
 
+        final float scoreRatio = ((float) start.getScore()) / ((float) start.getMaxScore());
+        logger.debug("Starting square with score: {}/{} ({}%)", start.getScore(), start.getMaxScore(), String.format("%.2f", scoreRatio * 100));
+
         final AtomicReference<MagicSquare> bestSquare = new AtomicReference<>(start);
 
         try {
