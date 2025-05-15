@@ -13,123 +13,28 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * Worker class for MagicSquare that implements Callable to search for magic squares in parallel.
- * A magic square is a square grid filled with distinct numbers such that the numbers in each row,
- * each column, and both main diagonals all add up to the same value.
- * This implementation includes a shared best solution mechanism that allows workers to
- * periodically check for and adopt better solutions found by other workers.
+ * Worker class for MagicSquare that implements a work-stealing approach to search for magic squares in parallel.
+ * This implementation divides the search space into smaller tasks that can be stolen by idle workers,
+ * improving CPU utilization and load balancing.
  */
-public class MagicSquareWorker implements Callable<MagicSquare> {
+public class MagicSquareWorker {
     /** Logger instance for this class */
     private static final Logger logger = LoggerFactory.getLogger(MagicSquareWorker.class);
-    
-    /** File to persist the best state found during search */
-    private final File stateFile;
-    
-    /** CompletableFuture that will be completed with the first valid solution */
-    private final CompletableFuture<MagicSquare> firstSolution;
-    
-    /** Shared reference to the current best square across all workers */
-    private final AtomicReference<MagicSquare> bestSquare;
-    
-    /** Number of iterations between checks for better solutions from other workers */
-    private static final long SHARING_FREQUENCY = 500000L;
-    
+
     /** Lock for synchronizing updates to the best square */
     private static final Lock LOCK = new ReentrantLock();
 
-    /**
-     * Constructor for MagicSquareWorker
-     *
-     * @param firstSolution CompletableFuture that will be completed with the first valid solution
-     * @param bestSquare Shared atomic reference to the current best square
-     * @param stateFile File to persist the best state found during search
-     */
-    private MagicSquareWorker(CompletableFuture<MagicSquare> firstSolution, AtomicReference<MagicSquare> bestSquare, File stateFile) {
-        this.firstSolution = firstSolution;
-        this.bestSquare = bestSquare;
-        this.stateFile = stateFile;
-    }
+    /** Number of initial populations to create (set to 4x number of threads for better work distribution) */
+    private static final int POPULATION_MULTIPLIER = 4;
+
+    /** Number of iterations each task will perform before checking for solution or splitting */
+    private static final int ITERATIONS_PER_TASK = 100000;
+
+    /** How often to save state regardless of score improvements (in milliseconds) */
+    private static final long STATE_SAVE_INTERVAL_MS = TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES);
 
     /**
-     * Executes the magic square search algorithm.
-     * Continuously evolves the magic square until either a valid solution is found
-     * or another thread has found a solution.
-     * Periodically checks for better solutions from other workers and adopts them if found.
-     *
-     * @return A MagicSquare object, which may or may not be a valid magic square
-     * @throws IOException if there is an error saving the state
-     */
-    @Override
-    public MagicSquare call() throws IOException {
-        // Validate initial state
-        if(this.bestSquare.get() == null) {
-           throw new IllegalStateException("Starting magic square is null");
-        }
-
-        MagicSquare magic = this.bestSquare.get();
-
-        long iteration = 0;
-        // Continue evolving until we find a solution or another thread does
-        while (!(magic.isMagic() || this.firstSolution.isDone())) {
-            // Evolve the current square
-            magic = magic.evolve();
-
-            // Check if we found a better solution
-            if(magic != this.bestSquare.get() && (magic.getScore() > this.bestSquare.get().getScore())) {
-               try {
-                   LOCK.lock();
-                   // Double-check pattern to ensure thread safety
-                   if(magic != this.bestSquare.get() && (magic.getScore() > this.bestSquare.get().getScore())) {
-                       this.bestSquare.set(magic);
-
-                       final float scoreRatio = ((float) magic.getScore()) / ((float) magic.getMaxScore());
-                       logger.debug("Found square with score: {}/{} ({}%)", magic.getScore(), magic.getMaxScore(), String.format("%.2f", scoreRatio * 100));
-
-                       // Persist the best state if a file is specified
-                       if (this.stateFile != null) {
-                           MagicSquareState.save(magic, this.stateFile);
-                       }
-                   }
-               } finally {
-                   LOCK.unlock();
-               }
-            }
-
-            // Periodically check for better solutions from other workers
-            if (iteration % SHARING_FREQUENCY == 0) {
-                final MagicSquare currentBest = this.bestSquare.get();
-                if (currentBest.getScore() > magic.getScore()) {
-                    // Adopt the better solution and continue evolving from there
-                    magic = MagicSquare.build(currentBest.getValues());
-                }
-            }
-
-            iteration++;
-        }
-
-        // If we found a solution, complete the future
-        if (magic.isMagic()) {
-            this.firstSolution.complete(magic);
-            logger.info("Found magic square solution!");
-        }
-
-        return magic;
-    }
-
-    /**
-     * Updates the shared best square if the current square has a better score.
-     * Uses atomic operations to ensure thread safety.
-     *
-     * @param current The current square to consider
-     * @return The updated best square
-     */
-    private MagicSquare updateBestSquare(final MagicSquare current) {
-        return this.bestSquare.updateAndGet(existing -> (existing == null || current.getScore() > existing.getScore()) ? current : existing);
-    }
-
-    /**
-     * Search for a magic square of the given order using the specified number of threads.
+     * Search for a magic square of the given order using a work-stealing approach.
      * This is a convenience method that calls the main search method without state persistence.
      *
      * @param order The order of the magic square (size of the square grid)
@@ -146,10 +51,9 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
     }
 
     /**
-     * Search for a magic square of the given order using the specified number of threads.
-     * This method creates a thread pool and distributes the search work across multiple threads.
-     * Workers share their best solutions to improve overall efficiency.
-     * The search stops as soon as any thread finds a valid magic square.
+     * Search for a magic square of the given order using work-stealing parallelism.
+     * This method creates multiple initial starting points and distributes them as tasks
+     * in a ForkJoinPool, allowing idle threads to steal work from busy ones.
      *
      * @param order The order of the magic square (size of the square grid)
      * @param numThreads The number of threads to use for parallel search
@@ -168,45 +72,301 @@ public class MagicSquareWorker implements Callable<MagicSquare> {
             throw new IllegalArgumentException("Number of threads must be greater than 0");
         }
 
-        final ExecutorService executor = Executors.newFixedThreadPool(numThreads);
-        final CompletableFuture<MagicSquare> firstSolution = new CompletableFuture<>();
+        // Create a work-stealing thread pool
+        final ForkJoinPool forkJoinPool = new ForkJoinPool(numThreads);
 
-        // Initialize starting state from file or create new
-        final MagicSquare start;
-        if(stateFile != null && stateFile.canRead() && stateFile.length() > 0) {
-            start = MagicSquareState.load(stateFile);
-        } else {
-            start = MagicSquare.build(order);
-        }
+        // Shared state: the best square found so far, and a future for the first solution
+        final CompletableFuture<MagicSquare> solutionFuture = new CompletableFuture<>();
+        final AtomicReference<MagicSquare> bestSquare = new AtomicReference<>(null);
 
-        final float scoreRatio = ((float) start.getScore()) / ((float) start.getMaxScore());
-        logger.debug("Starting square with score: {}/{} ({}%)", start.getScore(), start.getMaxScore(), String.format("%.2f", scoreRatio * 100));
-
-        final AtomicReference<MagicSquare> bestSquare = new AtomicReference<>(start);
+        // Create a scheduler for periodic state saving
+        final ScheduledExecutorService stateSaveScheduler = (stateFile != null) ? Executors.newSingleThreadScheduledExecutor() : null;
 
         try {
-            List<CompletableFuture<MagicSquare>> futures = new ArrayList<>();
-
-            // Create and start worker threads
-            for (int i = 0; i < numThreads; i++) {
-                final Callable<MagicSquare> worker = new MagicSquareWorker(firstSolution, bestSquare, stateFile);
-                final CompletableFuture<MagicSquare> future = CompletableFuture.supplyAsync(() -> {
-                    try {
-                        return worker.call();
-                    } catch (Exception e) {
-                        throw new CompletionException(e);
-                    }
-                }, executor);
-                futures.add(future);
+            final boolean restoreState = stateFile != null && stateFile.canRead() && stateFile.length() > 0;
+            if (restoreState) {
+                logger.info("Restoring state from file: {}", stateFile.getAbsolutePath());
             }
 
-            // Wait for either the first solution or all threads to complete
-            CompletableFuture.anyOf(futures.toArray(new CompletableFuture[0])).join();
+            // Initialize starting state from file or create new
+            final MagicSquare initialSquare = restoreState ? MagicSquareState.load(stateFile) : MagicSquare.build(order);
 
-            return firstSolution.getNow(null);
+            bestSquare.set(initialSquare);
+            logger.info("Initial magic square with score: {}/{}", initialSquare.getScore(), initialSquare.getMaxScore());
 
+            // Set up periodic state saving if a state file is specified
+            if (stateFile != null) {
+                // Schedule periodic state saving regardless of improvements
+                stateSaveScheduler.scheduleAtFixedRate(() -> {
+                    MagicSquare currentBest = bestSquare.get();
+                    if (currentBest != null) {
+                        try {
+                            LOCK.lock();
+                            logger.info("Periodic state save - current best score: {}/{}", currentBest.getScore(), currentBest.getMaxScore());
+                            MagicSquareState.save(currentBest, stateFile);
+                        } catch (IOException e) {
+                            logger.error("Failed to save state during periodic save", e);
+                        } finally {
+                            LOCK.unlock();
+                        }
+                    }
+                }, STATE_SAVE_INTERVAL_MS, STATE_SAVE_INTERVAL_MS, TimeUnit.MILLISECONDS);
+            }
+
+            // Create initial task
+            final MagicSquareSearchTask initialTask = new MagicSquareSearchTask(
+                    initialSquare, bestSquare, solutionFuture, stateFile);
+
+            // Create and submit additional tasks with diverse starting points
+            final List<MagicSquareSearchTask> additionalTasks = new ArrayList<>();
+            for (int i = 1; i < numThreads * POPULATION_MULTIPLIER; i++) {
+                // Create diverse starting squares for better search space coverage
+                final MagicSquare startingSquare = restoreState ? MagicSquare.build(initialSquare.getValues()) : MagicSquare.build(order);
+                final MagicSquareSearchTask task = new MagicSquareSearchTask(
+                        startingSquare, bestSquare, solutionFuture, stateFile);
+                additionalTasks.add(task);
+            }
+
+            // Submit all tasks to the ForkJoinPool
+            final List<ForkJoinTask<MagicSquare>> allTasks = new ArrayList<>();
+            allTasks.add(forkJoinPool.submit(initialTask));
+            for (MagicSquareSearchTask task : additionalTasks) {
+                allTasks.add(forkJoinPool.submit(task));
+            }
+
+            // Wait for a solution or for all tasks to complete
+            MagicSquare result = null;
+            try {
+                // Wait for the first solution
+                result = solutionFuture.get();
+                logger.info("Solution found by one of the workers");
+
+                // Save the final result
+                if (result != null && result.isMagic() && stateFile != null) {
+                    try {
+                        LOCK.lock();
+                        logger.info("Saving final solution to state file");
+                        MagicSquareState.save(result, stateFile);
+                    } catch (IOException e) {
+                        logger.error("Failed to save final solution", e);
+                    } finally {
+                        LOCK.unlock();
+                    }
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                logger.error("Error waiting for solution", e);
+            }
+
+            // If no solution was found through the future, check the results of each task
+            if (result == null) {
+                for (ForkJoinTask<MagicSquare> task : allTasks) {
+                    try {
+                        MagicSquare taskResult = task.get();
+                        if (taskResult != null && taskResult.isMagic()) {
+                            result = taskResult;
+
+                            // Save the final result
+                            if (stateFile != null) {
+                                try {
+                                    LOCK.lock();
+                                    logger.info("Saving final solution from task result to state file");
+                                    MagicSquareState.save(result, stateFile);
+                                } catch (IOException e) {
+                                    logger.error("Failed to save final solution from task", e);
+                                } finally {
+                                    LOCK.unlock();
+                                }
+                            }
+                            break;
+                        }
+                    } catch (InterruptedException | ExecutionException e) {
+                        logger.debug("Task execution failed", e);
+                    }
+                }
+            }
+
+            return result;
         } finally {
-            executor.shutdown();
+            // Shutdown the executor and scheduler
+            forkJoinPool.shutdown();
+            if (stateSaveScheduler != null) {
+                stateSaveScheduler.shutdown();
+            }
+        }
+    }
+
+    /**
+     * RecursiveTask implementation for magic square search that supports work stealing.
+     * Each task evolves a magic square for a fixed number of iterations, then either:
+     * 1. Returns a valid magic square if found
+     * 2. Splits into subtasks if it's beneficial to do so
+     * 3. Continues evolving the square
+     */
+    private static class MagicSquareSearchTask extends RecursiveTask<MagicSquare> {
+        /** The current magic square being evolved by this task */
+        private MagicSquare currentSquare;
+
+        /** Shared reference to the best square found so far */
+        private final AtomicReference<MagicSquare> bestSquare;
+
+        /** Future that will be completed with the first solution found */
+        private final CompletableFuture<MagicSquare> solutionFuture;
+
+        /** File to save the best state (may be null) */
+        private final File stateFile;
+
+        /** Count of iterations performed by this task */
+        private long iterationCount = 0;
+
+        /** Iterations since last score improvement */
+        private long iterationsSinceImprovement = 0;
+
+        /** Recursion depth to prevent excessive task splitting */
+        private int depth = 0;
+
+        /** Maximum recursion depth allowed */
+        private static final int MAX_DEPTH = 15;
+
+        /**
+         * Constructor for the initial task
+         */
+        public MagicSquareSearchTask(MagicSquare initialSquare, AtomicReference<MagicSquare> bestSquare,
+                                     CompletableFuture<MagicSquare> solutionFuture, File stateFile) {
+            this.currentSquare = initialSquare;
+            this.bestSquare = bestSquare;
+            this.solutionFuture = solutionFuture;
+            this.stateFile = stateFile;
+        }
+
+        /**
+         * Constructor for subtasks (with depth tracking)
+         */
+        private MagicSquareSearchTask(MagicSquare initialSquare, AtomicReference<MagicSquare> bestSquare,
+                                      CompletableFuture<MagicSquare> solutionFuture, File stateFile,
+                                      int depth) {
+            this(initialSquare, bestSquare, solutionFuture, stateFile);
+            this.depth = depth;
+        }
+
+        @Override
+        protected MagicSquare compute() {
+            // If solution is already found, exit early
+            if (solutionFuture.isDone()) {
+                return null;
+            }
+
+            // Evolve the square for a fixed number of iterations
+            while (iterationCount < ITERATIONS_PER_TASK) {
+                // Evolve the current square
+                currentSquare = currentSquare.evolve();
+                iterationCount++;
+                iterationsSinceImprovement++;
+
+                // Check if we found a solution
+                if (currentSquare.isMagic()) {
+                    logger.info("Found magic square solution with perfect score!");
+                    solutionFuture.complete(currentSquare);
+                    return currentSquare;
+                }
+
+                // Update best square if we found a better one
+                MagicSquare existingBest = bestSquare.get();
+                if (existingBest == null || currentSquare.getScore() > existingBest.getScore()) {
+                    try {
+                        LOCK.lock();
+                        existingBest = bestSquare.get();
+                        if (existingBest == null || currentSquare.getScore() > existingBest.getScore()) {
+                            bestSquare.set(currentSquare);
+                            iterationsSinceImprovement = 0;
+
+                            // Log progress
+                            float scoreRatio = ((float) currentSquare.getScore()) / ((float) currentSquare.getMaxScore());
+                            logger.info("Found better square with score: {}/{} ({}%)",
+                                    currentSquare.getScore(), currentSquare.getMaxScore(),
+                                    String.format("%.2f", scoreRatio * 100));
+
+                            // Save the state immediately on improvement
+                            if (stateFile != null) {
+                                try {
+                                    MagicSquareState.save(currentSquare, stateFile);
+                                } catch (IOException e) {
+                                    logger.error("Failed to save state after improvement: {}", e.getMessage(), e);
+                                }
+                            }
+                        }
+                    } finally {
+                        LOCK.unlock();
+                    }
+                }
+
+                // Periodically check if we should adopt a better solution from another worker
+                if (iterationCount % 10000 == 0) {
+                    existingBest = bestSquare.get();
+                    if (existingBest != null && existingBest.getScore() > currentSquare.getScore()) {
+                        // Clone the better solution to avoid sharing the same instance
+                        currentSquare = MagicSquare.build(existingBest.getValues());
+                        iterationsSinceImprovement = 0;
+                    }
+
+                    // Check if we should abort due to another thread finding a solution
+                    if (solutionFuture.isDone()) {
+                        return null;
+                    }
+                }
+            }
+
+            // If we've reached the maximum recursion depth, continue with this task
+            if (depth >= MAX_DEPTH) {
+                return continueSameTask();
+            }
+
+            // Consider whether to split based on progress
+            if (iterationsSinceImprovement > ITERATIONS_PER_TASK * 3) {
+                // We haven't seen improvement for a while, so split to try different paths
+                return splitIntoSubtasks();
+            } else {
+                // Continue with current path as it's still improving
+                return continueSameTask();
+            }
+        }
+
+        /**
+         * Continue evolving in the same task without splitting
+         */
+        private MagicSquare continueSameTask() {
+            // Reset iteration count and continue
+            iterationCount = 0;
+            return compute();
+        }
+
+        /**
+         * Split the current task into subtasks for better work distribution
+         */
+        private MagicSquare splitIntoSubtasks() {
+            // Create two child tasks with different starting points
+            MagicSquareSearchTask leftTask = new MagicSquareSearchTask(
+                    currentSquare.newChild(), bestSquare, solutionFuture, stateFile, depth + 1);
+
+            MagicSquareSearchTask rightTask = new MagicSquareSearchTask(
+                    currentSquare.newChild(), bestSquare, solutionFuture, stateFile, depth + 1);
+
+            // Submit the left task and compute the right task directly (work stealing)
+            leftTask.fork();
+            MagicSquare rightResult = rightTask.compute();
+
+            // If right subtask found a solution, return it
+            if (rightResult != null && rightResult.isMagic()) {
+                return rightResult;
+            }
+
+            // Wait for the left task and check its result
+            MagicSquare leftResult = leftTask.join();
+            if (leftResult != null && leftResult.isMagic()) {
+                return leftResult;
+            }
+
+            // No solution found, return the best square we have
+            return bestSquare.get();
         }
     }
 }
