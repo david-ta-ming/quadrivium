@@ -31,7 +31,7 @@ public class MagicSquareWorker {
     private static final int ITERATIONS_PER_TASK = 100000;
 
     /** How often to save state regardless of score improvements (in milliseconds) */
-    private static final long STATE_SAVE_INTERVAL_MS = TimeUnit.MILLISECONDS.convert(5, TimeUnit.MINUTES);
+    private static final long STATE_SAVE_INTERVAL_MS = TimeUnit.MILLISECONDS.convert(15, TimeUnit.MINUTES);
 
     /**
      * Search for a magic square of the given order using a work-stealing approach.
