@@ -478,8 +478,14 @@ public class MagicSquare implements Comparable<MagicSquare> {
             // Swap values between two open rows or columns; if true, swap rows else swap columns
             final boolean openRowOrColSwap;
             if (!(this.openRowsCount == 0 || this.openColsCount == 0)) {
-                // Randomly choose between improving rows or columns
-                openRowOrColSwap = RANDOM.nextBoolean();
+                // Calculate the total number of open rows and columns
+                final int totalOpen = this.openRowsCount + this.openColsCount;
+
+                // Determine the probability of choosing rows based on their proportion
+                final double rowProbability = (double) this.openRowsCount / totalOpen;
+
+                // Use the probability to decide whether to swap rows or columns
+                openRowOrColSwap = RANDOM.nextDouble() < rowProbability;
             } else {
                 // If one list is empty, choose the other
                 openRowOrColSwap = this.openColsCount == 0;
