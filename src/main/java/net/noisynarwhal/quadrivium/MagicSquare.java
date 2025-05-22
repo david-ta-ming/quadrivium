@@ -510,9 +510,15 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 }
 
                 r1 = idx1;
-                c1 = RANDOM.nextInt(this.order);
                 r2 = idx2;
-                c2 = RANDOM.nextInt(this.order);
+
+                c1 = RANDOM.nextInt(this.order);
+                if(RANDOM.nextInt(this.order) == 0 || this.openColsCount > 0) {
+                    c2 = RANDOM.nextInt(this.order);
+                } else {
+                    c2 = c1;
+                }
+
             } else {
                 // Swap values between two open columns
                 int idx1 = selectRandomBitIndex(this.openColsBits, this.openColsCount);
@@ -527,10 +533,16 @@ public class MagicSquare implements Comparable<MagicSquare> {
                     idx2 = idx1; // Only one column to choose
                 }
 
-                r1 = RANDOM.nextInt(this.order);
                 c1 = idx1;
-                r2 = RANDOM.nextInt(this.order);
                 c2 = idx2;
+
+                r1 = RANDOM.nextInt(this.order);
+                if(RANDOM.nextInt(this.order) == 0 || this.openRowsCount > 0) {
+                    r2 = RANDOM.nextInt(this.order);
+                } else {
+                    r2 = r1;
+                }
+
             }
 
             // Perform the swap
