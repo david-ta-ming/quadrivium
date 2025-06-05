@@ -479,13 +479,15 @@ public class MagicSquare implements Comparable<MagicSquare> {
             final boolean openRowOrColSwap;
             if (!(this.openRowsCount == 0 || this.openColsCount == 0)) {
                 // Calculate the total number of open rows and columns
-                final int totalOpen = this.openRowsCount + this.openColsCount;
+                // final int totalOpen = this.openRowsCount + this.openColsCount;
 
                 // Determine the probability of choosing rows based on their proportion
-                final double rowProbability = (double) this.openRowsCount / totalOpen;
+                // final double rowProbability = (double) this.openRowsCount / totalOpen;
 
                 // Use the probability to decide whether to swap rows or columns
-                openRowOrColSwap = RANDOM.nextDouble() < rowProbability;
+                // openRowOrColSwap = RANDOM.nextDouble() < rowProbability;
+
+                openRowOrColSwap = RANDOM.nextBoolean();
             } else {
                 // If one list is empty, choose the other
                 openRowOrColSwap = this.openColsCount == 0;
@@ -512,11 +514,17 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 r1 = idx1;
                 r2 = idx2;
 
-                c1 = RANDOM.nextInt(this.order);
-                if(RANDOM.nextInt(this.order) == 0 || this.openColsCount > 0) {
-                    c2 = RANDOM.nextInt(this.order);
+                if(RANDOM.nextFloat() > 0.1 && this.openColsCount > 0) {
+                    // randomly select from open columns
+                    c1 = selectRandomBitIndex(this.openColsBits, this.openColsCount);
+                    c2 = selectRandomBitIndex(this.openColsBits, this.openColsCount);
                 } else {
-                    c2 = c1;
+                    c1 = RANDOM.nextInt(this.order);
+                    if (RANDOM.nextInt(this.order) == 0 || this.openColsCount > 0) {
+                        c2 = RANDOM.nextInt(this.order);
+                    } else {
+                        c2 = c1;
+                    }
                 }
 
             } else {
@@ -536,11 +544,17 @@ public class MagicSquare implements Comparable<MagicSquare> {
                 c1 = idx1;
                 c2 = idx2;
 
-                r1 = RANDOM.nextInt(this.order);
-                if(RANDOM.nextInt(this.order) == 0 || this.openRowsCount > 0) {
-                    r2 = RANDOM.nextInt(this.order);
+                if(RANDOM.nextFloat() > 0.1 && this.openRowsCount > 0) {
+                    // randomly select from open rows
+                    r1 = selectRandomBitIndex(this.openRowsBits, this.openRowsCount);
+                    r2 = selectRandomBitIndex(this.openRowsBits, this.openRowsCount);
                 } else {
-                    r2 = r1;
+                    r1 = RANDOM.nextInt(this.order);
+                    if (RANDOM.nextInt(this.order) == 0 || this.openRowsCount > 0) {
+                        r2 = RANDOM.nextInt(this.order);
+                    } else {
+                        r2 = r1;
+                    }
                 }
 
             }
