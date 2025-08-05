@@ -82,10 +82,10 @@ Performance benchmarks were run using JMH (Java Microbenchmark Harness) with the
 
 | Order | Average Time | Error (±) |
 |-------|-------------|-----------|
-| 19    | 0.012 s     | 0.001 s   |
-| 29    | 0.083 s     | 0.005 s   |
-| 41    | 0.510 s     | 0.075 s   |
-| 59    | 3.373 s     | 1.324 s   |
+| 19    | 0.009 s     | 0.001 s   |
+| 29    | 0.057 s     | 0.003 s   |
+| 41    | 0.344 s     | 0.051 s   |
+| 59    | 3.186 s     | 2.017 s   |
 
 The benchmarks were run on:
 - JDK 17.0.14
