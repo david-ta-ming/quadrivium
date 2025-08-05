@@ -88,3 +88,4 @@ dependency-reduced-pom.xml
 
 # Quadrivium state files
 *.qstate.txt
+CLAUDE.md
